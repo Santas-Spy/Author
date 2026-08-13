@@ -23,11 +23,22 @@ def chooseModel(message):
     response = koboldInstance.sendMessage(text)
     print(response)
 
-def summarizeConversation():
-    raise NotImplementedError
+def summarizeConversation(chat_id):
+	prompt = config.readSetting('prompts.summarize_conversation')
+	chatText = chathandler.loadChat(chat_id)
+	text = prompt.replace('{history}', chatText)
+	response = koboldInstance.sendMessage(text)
+	chathandler.saveSummary(chat_id, response)
 
 def analyzeConversation():
     raise NotImplementedError
+
+def catagorizeConversation(chat_id):
+	prompt = config.readSetting('prompts.catagorize_conversation')
+	chatText = chathandler.loadChat(chat_id)
+	text = prompt.replace('{history}', chatText)
+	response = koboldInstance.sendMessage(text)
+	print(response)
 
 def startProgram():
     running = True
@@ -49,3 +60,6 @@ def startProgram():
 
         print(response)
         print("Chat Length: " + str(len(chatText)))
+        if len(chatText) > 500:
+            summarizeConversation(chat_id)
+            catagorizeConversation(chat_id)

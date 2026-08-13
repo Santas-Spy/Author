@@ -12,7 +12,7 @@ def getConfig():
         config = json.loads(f.read())
         return config
 
-def readSetting(pathStr:str):
+def readSetting(pathStr:str) -> str:
     config = getConfig()
     path = pathStr.split('.')
     setting = config
