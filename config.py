@@ -20,7 +20,6 @@ def readSetting(pathStr:str):
 
 
     for step in path:
-        print(step)
         if step not in setting:
             raise KeyError("Missing configuration key: \"" + step + "\" in key " + pathStr)
         setting = setting[step]

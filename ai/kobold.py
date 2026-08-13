@@ -1,6 +1,8 @@
 import json
 import requests
 import loghandler as logging
+from requests.exceptions import ConnectionError
+import ai.chatformatter as chatformatter
 
 
 class KoboldInstance:
@@ -36,7 +38,7 @@ class KoboldInstance:
 
     def sendMessage(self, prompt, max_length=1024, temperature=0.8, image=None):
         logging.logToFile(prompt, tag="[RAW PROMPT INPUT]", logtype="raw_text.txt")
-        prompt = self.__preprocess_prompt__(prompt)
+        prompt = chatformatter.lfm2_5(prompt)
         logging.logToFile(prompt, tag="[PROMPT INPUT]")
 
         payload = {
@@ -68,9 +70,7 @@ class KoboldInstance:
                         full_response += decoded_line
 
         except ConnectionError:
-            print(
-                "Kobold Instance not found. Please make sure the koboldCPP server is running"
-            )
+            return "Error: Kobold Instance not found. Please make sure the koboldCPP server is running"
 
         return full_response
 
