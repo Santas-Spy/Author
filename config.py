@@ -17,8 +17,6 @@ def readSetting(pathStr:str):
     path = pathStr.split('.')
     setting = config
 
-
-
     for step in path:
         if step not in setting:
             raise KeyError("Missing configuration key: \"" + step + "\" in key " + pathStr)

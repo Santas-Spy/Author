@@ -13,3 +13,6 @@ def gemini(prompt:str):
     prompt = prompt.replace("{{[INPUT]}}", "<turn|>\n<|turn>user\n")
     prompt = prompt.replace("{{[OUTPUT]}}", "<|turn>model\n<|channel>thought\n *")
     return prompt
+
+def muse(prompt:str):
+    raise NotImplementedError("Muse adapter not yet created")
