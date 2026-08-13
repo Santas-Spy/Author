@@ -11,3 +11,17 @@ def getConfig():
     with open(file, 'r') as f:
         config = json.loads(f.read())
         return config
+
+def readSetting(pathStr:str):
+    config = getConfig()
+    path = pathStr.split('.')
+    setting = config
+
+
+
+    for step in path:
+        print(step)
+        if step not in setting:
+            raise KeyError("Missing configuration key: \"" + step + "\" in key " + pathStr)
+        setting = setting[step]
+    return setting

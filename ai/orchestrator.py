@@ -1,3 +1,7 @@
+from ai.kobold import koboldInstance
+import config
+import data.chathandler as chathandler
+
 """
 Flow Chart
 -----------
@@ -15,10 +19,25 @@ def sendMessage(text):
     raise NotImplementedError
 
 def chooseModel(message):
-    raise NotImplementedError
+    text = config.readSetting('prompts.choose_model')
+    response = koboldInstance.sendMessage(text)
+    print(response)
 
 def summarizeConversation():
     raise NotImplementedError
 
 def analyzeConversation():
     raise NotImplementedError
+
+def startProgram():
+    running = True
+    chat_id = 1
+    koboldInstance.setEndpoint(config.readSetting('kobold.url'))
+    while running:
+        userMessage = input("> ")
+        text = chathandler.loadChat(chat_id)
+        text = text + "{{USER}}" + userMessage
+        chathandler.saveChat(chat_id, text)
+
+        model = chooseModel(userMessage)
+        koboldInstance.loadModel(model)

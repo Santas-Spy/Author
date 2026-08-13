@@ -1,5 +1,4 @@
 import json
-import config
 import requests
 import loghandler as logging
 
@@ -17,11 +16,7 @@ class KoboldInstance:
         if self._initialized:
             return
 
-        configuration = config.getConfig()
-        self.base_url = configuration['kobold']['url']
-        self.generate_url = self.base_url + "/api/extra/generate/stream"
-        self.context_url = self.base_url + "/api/extra/true_max_context_length"
-        self.tokencount_url = self.base_url + "/api/extra/tokenize"
+        self.setEndpoint("LOCATION_NOT_SET")
         self._initialized = True
 
     def __preprocess_prompt__(self, prompt: str):
@@ -31,6 +26,13 @@ class KoboldInstance:
         prompt = prompt.replace("{{[INPUT]}}", "<turn|>\n<|turn>user\n")
         prompt = prompt.replace("{{[OUTPUT]}}", "<|turn>model\n<|channel>thought\n *")
         return prompt
+
+    def setEndpoint(self, url):
+        self.base_url = url
+        self.generate_url = self.base_url + "/api/extra/generate/stream"
+        self.context_url = self.base_url + "/api/extra/true_max_context_length"
+        self.tokencount_url = self.base_url + "/api/extra/tokenize"
+        self._initialized = True
 
     def sendMessage(self, prompt, max_length=1024, temperature=0.8, image=None):
         logging.logToFile(prompt, tag="[RAW PROMPT INPUT]", logtype="raw_text.txt")
@@ -116,6 +118,9 @@ class KoboldInstance:
 
         return token_count
 
+    def loadModel(self, modelName):
+        print("Model swapping is not yet supported")
+        return
 
 # Singleton instance
 koboldInstance = KoboldInstance()
