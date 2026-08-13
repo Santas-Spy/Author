@@ -31,3 +31,9 @@ def loadSummary(chat_id):
 
 def saveSummary(chat_id, text):
 	_saveFile(chat_id, "summary.txt", text)
+
+def loadAnalysis(chat_id):
+	return _loadFile(chat_id, "analysis.txt")
+
+def saveAnalysis(chat_id, text):
+	_saveFile(chat_id, "analysis.txt", text)
