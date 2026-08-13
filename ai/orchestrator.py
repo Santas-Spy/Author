@@ -32,18 +32,20 @@ def analyzeConversation():
 def startProgram():
     running = True
     chat_id = 1
+    chatText = ""
     koboldInstance.setEndpoint(config.readSetting('kobold.url'))
     while running:
         userMessage = input("> ")
-        chatText = chathandler.loadChat(chat_id)
-        chatText = chatText + "{{[USER]}}" + userMessage + "{{[OUTPUT]}}"
-        chathandler.saveChat(chat_id, chatText)
+        #chatText = chathandler.loadChat(chat_id)
+        chatText = chatText + "{{[INPUT]}}" + userMessage + "{{[OUTPUT]}}"
+        #chathandler.saveChat(chat_id, chatText)
 
         model = chooseModel(userMessage)
         koboldInstance.loadModel(model)
 
         response = sendMessage(chatText)
         chatText = chatText + response
-        chathandler.saveChat(chat_id, chatText)
+        #chathandler.saveChat(chat_id, chatText)
 
         print(response)
+        print("Chat Length: " + str(len(chatText)))
