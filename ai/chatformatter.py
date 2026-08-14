@@ -16,3 +16,16 @@ def gemini(prompt:str):
 
 def muse(prompt:str):
     raise NotImplementedError("Muse adapter not yet created")
+
+def seperateThinking(text, thinking_start = "<think>", thinking_end = "</think>"):
+	# Search the text to ensure there is only one instance of <think> and </think>, otherwise things might get messy
+	split_text = {"thinking": "", "response": text}
+	if text.count(thinking_start) == 1 and text.count(thinking_end) == 1:
+		split = text.split(thinking_start)[1].split(thinking_end)
+		split_text["thinking"] = split[0]
+		split_text["response"] = split[1]
+		print("Split success")
+	else:
+		print("WARNING: TEXT HAS INCORRECT NUMBER OF THINKING TAGS")
+
+	return split_text

@@ -36,7 +36,7 @@ class KoboldInstance:
         self.tokencount_url = self.base_url + "/api/extra/tokenize"
         self._initialized = True
 
-    def sendMessage(self, prompt, max_length=1024, temperature=0.8, image=None):
+    def sendMessage(self, prompt, max_length=16384, temperature=0.8, image=None):
         logging.logToFile(prompt, tag="[RAW PROMPT INPUT]", logtype="raw_text.txt")
         prompt = chatformatter.lfm2_5(prompt)
         logging.logToFile(prompt, tag="[PROMPT INPUT]")

@@ -1,4 +1,5 @@
 import os
+import json
 
 def _loadFile(chat_id, filename):
     dir = f"data/{chat_id}"
@@ -20,20 +21,59 @@ def _saveFile(chat_id, filename, text):
     with open(filePath, 'w') as file:
         file.write(text)
 
-def loadChat(chat_id):
-	return _loadFile(chat_id, "chathistory.txt")
-
 def saveChat(chat_id, text):
-	_saveFile(chat_id, "chathistory.txt", text)
-
-def loadSummary(chat_id):
-	return _loadFile(chat_id, "summary.txt")
-
-def saveSummary(chat_id, text):
-	_saveFile(chat_id, "summary.txt", text)
-
-def loadAnalysis(chat_id):
-	return _loadFile(chat_id, "analysis.txt")
+	saveChatData(chat_id, text=text)
 
 def saveAnalysis(chat_id, text):
-	_saveFile(chat_id, "analysis.txt", text)
+	saveChatData(chat_id, analysis=text)
+
+def saveSummary(chat_id, text):
+	saveChatData(chat_id, summary=text)
+
+def loadChat(chat_id):
+	data = loadChatData(chat_id)
+	chat_text = ""
+	if 'text' in data:
+		chat_text = data['text']
+	return chat_text
+
+def loadSummary(chat_id):
+	data = loadChatData(chat_id)
+	summary = ""
+	if 'summary' in data:
+		summary = data['summary']
+	return summary
+
+def loadAnalysis(chat_id):
+	data = loadChatData(chat_id)
+	analysis = ""
+	if 'analysis' in data:
+		analysis = data['analysis']
+	return analysis
+
+def saveChatData(chat_id, text = None, summary = None, tags = None, analysis = None):
+	chat_data = {}
+	raw_data = _loadFile(chat_id, "data.json")
+	if raw_data != "":
+		chat_data = json.loads(raw_data)
+
+	if text is not None:
+		chat_data['text'] = text
+
+	if summary is not None:
+		chat_data['summary'] = summary
+
+	if analysis is not None:
+		chat_data['analysis'] = analysis
+
+	if tags is not None:
+		chat_data['tags'] = tags
+
+	chat_data['data_format'] = 2.0
+
+	_saveFile(chat_id, "data.json", json.dumps(chat_data, indent=2))
+
+def loadChatData(chat_id:int):
+	raw_data = _loadFile(chat_id, "data.json")
+	data = json.loads(raw_data)
+	return data
