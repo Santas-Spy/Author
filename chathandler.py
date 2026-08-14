@@ -74,6 +74,8 @@ def saveChatData(chat_id, text = None, summary = None, tags = None, analysis = N
 	_saveFile(chat_id, "data.json", json.dumps(chat_data, indent=2))
 
 def loadChatData(chat_id:int):
+	chat_data = {}
 	raw_data = _loadFile(chat_id, "data.json")
-	data = json.loads(raw_data)
-	return data
+	if raw_data != "":
+		chat_data = json.loads(raw_data)
+	return chat_data
