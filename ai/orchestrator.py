@@ -1,5 +1,11 @@
+import datetime
+import json
+from json import JSONDecodeError
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import chathandler
@@ -8,6 +14,7 @@ from ai import chatformatter
 from ai.kobold import koboldInstance
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 app.add_middleware(
@@ -37,6 +44,10 @@ class ChatRequest(BaseModel):
     message: str
 
 
+class LoadChatRequest(BaseModel):
+    chat_id: int
+
+
 def sendMessage(text):
     return koboldInstance.sendMessage(text)
 
@@ -52,6 +63,7 @@ def summarizeConversation(chat_id):
     prompt = config.readSetting("prompts.summarize_conversation")
     chatText = chathandler.loadChat(chat_id)
     text = prompt.replace("{history}", chatText)
+    text = text.replace("{max_length}", str(len(chatText) / 2))
     response = koboldInstance.sendMessage(text)
     split_response = chatformatter.seperateThinking(response)
     answer = split_response["response"]
@@ -66,7 +78,17 @@ def analyzeConversation(chat_id):
     response = koboldInstance.sendMessage(text)
     split_response = chatformatter.seperateThinking(response)
     answer = split_response["response"]
-    chathandler.saveChatData(chat_id, analysis=answer)
+
+    result = answer
+    try:
+        factsJson = json.loads(userFacts)
+        answerJson = json.loads(answer)
+        factsJson.extend(answerJson)
+        result = json.dumps(factsJson)
+    except JSONDecodeError:
+        print("Warning. Could not parse json from model")
+
+    chathandler.saveChatData(chat_id, analysis=result)
 
 
 def catagorizeConversation(chat_id):
@@ -79,19 +101,35 @@ def catagorizeConversation(chat_id):
     chathandler.saveChatData(chat_id, tags=answer)
 
 
-def chatLoop(chat_id, user_message):
+def sendUserMessage(chat_id, user_message):
+    # Build the prompt
+    prompt = config.readSetting("prompts.system")
     chatText = chathandler.loadChat(chat_id)
     chatText = chatText + "{{[INPUT]}}" + user_message + "{{[OUTPUT]}}"
     chathandler.saveChat(chat_id, chatText)
 
+    # Fill in placeholders
+    user_profile = "{new user}"
+    current_date = datetime.datetime.now().strftime("%c")
+    prompt = prompt.replace("{user_profile}", user_profile)
+    prompt = prompt.replace("{date}", current_date)
+
+    # Choose the model
     model = chooseModel(user_message)
     koboldInstance.loadModel(model)
 
-    response = sendMessage(chatText)
+    # Send the message
+    message = prompt + chatText
+    response = sendMessage(message)
     split_response = chatformatter.seperateThinking(response)
     chatText = chatText + split_response["response"]
-    print(split_response["response"])
     chathandler.saveChat(chat_id, chatText)
+
+    return chatText
+
+
+def chatLoop(chat_id, user_message):
+    chatText = sendUserMessage(chat_id, user_message)
 
     print("Chat Length: " + str(len(chatText)))
     if len(chatText) > 500:
@@ -131,3 +169,15 @@ def send_message(req: ChatRequest):
     chat_text = chathandler.loadChat(chat_id)
 
     return {"text": chat_text}
+
+
+@app.post("/api/loadChat")
+def load_messages(req: LoadChatRequest):
+    chat_id = req.chat_id
+    chat_text = chathandler.loadChat(chat_id)
+    return {"text": chat_text}
+
+
+@app.get("/")
+async def read_index():
+    return FileResponse("static/index.html")

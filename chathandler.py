@@ -11,7 +11,7 @@ def _loadFile(chat_id, filename):
         with open(filePath, "r") as file:
             text = file.read()
     except FileNotFoundError:
-        print(f'Data "{filename}" was found for chat {chat_id}')
+        print(f'Data file "{filename}" was created for chatID: {chat_id}')
 
     return text
 
