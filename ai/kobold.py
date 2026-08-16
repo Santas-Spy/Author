@@ -1,8 +1,10 @@
 import json
+
 import requests
-import loghandler as logging
 from requests.exceptions import ConnectionError
+
 import ai.chatformatter as chatformatter
+import loghandler as logging
 
 
 class KoboldInstance:
@@ -70,7 +72,9 @@ class KoboldInstance:
                         full_response += decoded_line
 
         except ConnectionError:
-            return "Error: Kobold Instance not found. Please make sure the koboldCPP server is running"
+            print(
+                "Error: Kobold Instance not found. Please make sure the koboldCPP server is running"
+            )
 
         return full_response
 
@@ -121,6 +125,7 @@ class KoboldInstance:
     def loadModel(self, modelName):
         print("Model swapping is not yet supported")
         return
+
 
 # Singleton instance
 koboldInstance = KoboldInstance()

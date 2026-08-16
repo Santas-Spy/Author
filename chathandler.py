@@ -48,7 +48,9 @@ def loadSummary(chat_id) -> str:
     return summary
 
 
-def saveChatData(chat_id, text=None, summary=None, tags=None, analysis=None):
+def saveChatData(
+    chat_id, text=None, summary=None, tags=None, analysis=None, title=None
+):
     chat_data = {}
     raw_data = _loadFile(chat_id, "data.json")
     if raw_data != "":
@@ -65,6 +67,9 @@ def saveChatData(chat_id, text=None, summary=None, tags=None, analysis=None):
 
     if tags is not None:
         chat_data["tags"] = tags
+
+    if title is not None:
+        chat_data["title"] = title
 
     chat_data["data_format"] = 2.0
 

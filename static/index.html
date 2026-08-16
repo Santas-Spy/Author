@@ -120,23 +120,47 @@
                 padding: 4px 9px;
                 border: 1px solid var(--border);
                 border-radius: 999px;
+                max-width: 220px;
+            }
+
+            .status-pill .status-message {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
 
             .status-dot {
+                flex: 0 0 auto;
                 width: 7px;
                 height: 7px;
                 border-radius: 50%;
                 background: var(--text-muted);
                 transition: background 0.2s ease;
             }
-            .status-dot[data-state="online"] {
+            /* Status values come from the server's {"status", "message"} response. */
+            .status-dot[data-state="ready"] {
                 background: var(--success);
             }
+            .status-dot[data-state="working"] {
+                background: #f5c211;
+                animation: status-pulse 1.1s infinite ease-in-out;
+            }
+            .status-dot[data-state="disabled"] {
+                background: var(--text-muted);
+            }
+            /* "offline" is set by the frontend only when the status endpoint itself is unreachable. */
             .status-dot[data-state="offline"] {
                 background: var(--danger);
             }
-            .status-dot[data-state="pending"] {
-                background: #f5c211;
+
+            @keyframes status-pulse {
+                0%,
+                100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.35;
+                }
             }
 
             .icon-button {
@@ -367,13 +391,15 @@
                     <span class="endpoint" id="endpoint-label">chat #0</span>
                 </div>
 
-                <div class="status-pill">
+                <div class="status-pill" id="status-pill" title="">
                     <span
                         class="status-dot"
                         id="status-dot"
-                        data-state="idle"
+                        data-state="disabled"
                     ></span>
-                    <span id="status-label">idle</span>
+                    <span class="status-message" id="status-label"
+                        >connecting…</span
+                    >
                 </div>
 
                 <button
@@ -446,7 +472,10 @@
                 endpoints: {
                     chat: "chat",
                     loadChat: "loadChat",
+                    status: "status",
                 },
+                // How often to poll the server for its current status.
+                statusPollIntervalMs: 3000,
                 // Markers the backend uses to delimit a transcript into turns.
                 // A marker attaches to the text segment that PRECEDES it.
                 markers: {
@@ -476,6 +505,7 @@
                 sendButton: document.getElementById("send-button"),
                 endpointLabel: document.getElementById("endpoint-label"),
                 apiUrlLabel: document.getElementById("api-url-label"),
+                statusPill: document.getElementById("status-pill"),
                 statusDot: document.getElementById("status-dot"),
                 statusLabel: document.getElementById("status-label"),
                 newChatButton: document.getElementById("new-chat-button"),
@@ -584,13 +614,46 @@
 
             /**
              * ---------------------------------------------------------------------
-             * Connection status
+             * Server-driven status indicator
              * ---------------------------------------------------------------------
+             * The server is the source of truth for what the dot shows. It's polled
+             * on an interval and expected to respond with:
+             *   { "status": "ready" | "working" | "disabled" | <anything else>, "message": "..." }
+             * "status" picks the dot color; "message" is shown as free-form text
+             * describing what the server is currently doing.
+             *
+             * "offline" is the one state the frontend sets itself — only when the
+             * status endpoint can't be reached at all.
              */
-            function setStatus(state) {
-                // state: "idle" | "pending" | "online" | "offline"
-                dom.statusDot.dataset.state = state;
-                dom.statusLabel.textContent = state;
+            function setStatus(status, message) {
+                dom.statusDot.dataset.state = status;
+                dom.statusLabel.textContent = message || status;
+                dom.statusPill.title = message || status;
+            }
+
+            async function pollServerStatus() {
+                try {
+                    const response = await fetch(
+                        CONFIG.apiBaseUrl + CONFIG.endpoints.status,
+                    );
+                    if (!response.ok) {
+                        throw new Error(
+                            `Server responded with status ${response.status}`,
+                        );
+                    }
+                    const data = await response.json();
+                    setStatus(data.status, data.message);
+                } catch (error) {
+                    setStatus(
+                        "offline",
+                        `Could not reach ${CONFIG.apiBaseUrl}`,
+                    );
+                }
+            }
+
+            function startStatusPolling() {
+                pollServerStatus();
+                setInterval(pollServerStatus, CONFIG.statusPollIntervalMs);
             }
 
             /**
@@ -599,7 +662,6 @@
              * ---------------------------------------------------------------------
              */
             async function callBackend(endpoint, payload) {
-                setStatus("pending");
                 const response = await fetch(CONFIG.apiBaseUrl + endpoint, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -612,9 +674,7 @@
                     );
                 }
 
-                const data = await response.json();
-                setStatus("online");
-                return data;
+                return response.json();
             }
 
             /**
@@ -632,7 +692,6 @@
                     renderTranscript(data.text ?? "");
                 } catch (error) {
                     thinkingRow.remove();
-                    setStatus("offline");
                     appendMessage(
                         "system",
                         `Could not reach the backend at ${CONFIG.apiBaseUrl}. Make sure the FastAPI server is running.\n(${error.message})`,
@@ -660,7 +719,6 @@
                     renderTranscript(data.text ?? "");
                 } catch (error) {
                     thinkingRow.remove();
-                    setStatus("offline");
                     appendMessage(
                         "system",
                         `Could not reach the backend at ${CONFIG.apiBaseUrl}. Make sure the FastAPI server is running.\n(${error.message})`,
@@ -701,6 +759,7 @@
                 "Hello! Send a message below to start chatting with your AI backend.",
             );
             loadChat();
+            startStatusPolling();
         </script>
     </body>
 </html>
