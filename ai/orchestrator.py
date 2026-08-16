@@ -73,7 +73,7 @@ def summarizeConversation(chat_id):
 def analyzeConversation(chat_id):
     prompt = config.readSetting("prompts.analyze_conversation")
     chatText = chathandler.loadChat(chat_id)
-    userFacts = chathandler.loadAnalysis(chat_id)
+    userFacts = chathandler.loadAnalysis()
     text = prompt.replace("{history}", chatText).replace("{user_facts}", userFacts)
     response = koboldInstance.sendMessage(text)
     split_response = chatformatter.seperateThinking(response)
@@ -88,7 +88,7 @@ def analyzeConversation(chat_id):
     except JSONDecodeError:
         print("Warning. Could not parse json from model")
 
-    chathandler.saveChatData(chat_id, analysis=result)
+    chathandler.saveAnalysis(result)
 
 
 def catagorizeConversation(chat_id):
@@ -109,7 +109,7 @@ def sendUserMessage(chat_id, user_message):
     chathandler.saveChat(chat_id, chatText)
 
     # Fill in placeholders
-    user_profile = "{new user}"
+    user_profile = chathandler.loadAnalysis()
     current_date = datetime.datetime.now().strftime("%c")
     prompt = prompt.replace("{user_profile}", user_profile)
     prompt = prompt.replace("{date}", current_date)

@@ -11,7 +11,7 @@ def _loadFile(chat_id, filename):
         with open(filePath, "r") as file:
             text = file.read()
     except FileNotFoundError:
-        print(f'Data file "{filename}" was created for chatID: {chat_id}')
+        print(f'Data file "{filename}" was not found for chatID: {chat_id}')
 
     return text
 
@@ -26,10 +26,6 @@ def _saveFile(chat_id, filename, text):
 
 def saveChat(chat_id, text):
     saveChatData(chat_id, text=text)
-
-
-def saveAnalysis(chat_id, text):
-    saveChatData(chat_id, analysis=text)
 
 
 def saveSummary(chat_id, text):
@@ -50,14 +46,6 @@ def loadSummary(chat_id) -> str:
     if "summary" in data:
         summary = data["summary"]
     return summary
-
-
-def loadAnalysis(chat_id) -> str:
-    data = loadChatData(chat_id)
-    analysis = ""
-    if "analysis" in data:
-        analysis = data["analysis"]
-    return analysis
 
 
 def saveChatData(chat_id, text=None, summary=None, tags=None, analysis=None):
@@ -89,3 +77,27 @@ def loadChatData(chat_id: int):
     if raw_data != "":
         chat_data = json.loads(raw_data)
     return chat_data
+
+
+def saveAnalysis(analysis: str):
+    dir = "data/"
+    filename = "user_analysis.json"
+    os.makedirs(dir, exist_ok=True)
+    filePath = f"{dir}/{filename}"
+    with open(filePath, "w") as file:
+        file.write(analysis)
+
+
+def loadAnalysis():
+    dir = "data/"
+    filename = "user_analysis.json"
+    os.makedirs(dir, exist_ok=True)
+    filePath = f"{dir}/{filename}"
+    text = "[]"
+    try:
+        with open(filePath, "r") as file:
+            text = file.read()
+    except FileNotFoundError:
+        print(f"Data file {filename} was not found")
+
+    return text
