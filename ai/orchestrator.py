@@ -17,6 +17,7 @@ def sendMessage(text):
 def chooseModel(message):
     setStatus("working", "Choosing Model")
     text = config.readSetting("prompts.choose_model")
+    text = text.replace("{request}", message)
     response = koboldInstance.sendMessage(text)
     split_response = chatformatter.seperateThinking(response)
     answer = split_response["response"]
@@ -84,14 +85,28 @@ def generateTitle(chat_id):
 
 
 def sendUserMessage(chat_id, user_message):
+    chat_data = chathandler.loadChatData(chat_id)
+
     # Build the prompt
     prompt = config.readSetting("prompts.system")
-    chatText = chathandler.loadChat(chat_id)
+    if "system_prompt" in chat_data:
+        prompt = chat_data["system_prompt"]
+        if prompt is None:
+            prompt = ""
+    chathandler.saveChatData(chat_id, system_prompt=prompt)
+
+    # Build the conversation history
+    chatText = ""
+    if "text" in chat_data:
+        chatText = chat_data["text"]
     chatText = chatText + "{{[INPUT]}}" + user_message + "{{[OUTPUT]}}"
     chathandler.saveChat(chat_id, chatText)
 
     # Fill in placeholders
-    user_profile = chathandler.loadAnalysis()
+    user_profile = ""
+    if "analysis" in chat_data:
+        user_profile = chat_data["analysis"]
+
     current_date = datetime.datetime.now().strftime("%c")
     prompt = prompt.replace("{user_profile}", user_profile)
     prompt = prompt.replace("{date}", current_date)

@@ -35,7 +35,7 @@ class LoadChatRequest(BaseModel):
     chat_id: int
 
 
-def _packageChatData(raw_data):
+def _packageChatData(raw_data, chat_id):
     valid_keys = [
         "text",
         "summary",
@@ -44,7 +44,7 @@ def _packageChatData(raw_data):
         "system_prompt",
         "analysis_prompt",
     ]
-    data = {}
+    data = {"chat_id": chat_id}
     for key in valid_keys:
         if key in raw_data:
             data[key] = raw_data[key]
@@ -69,7 +69,7 @@ def send_message(req: ChatRequest):
         orchestrator.catagorizeConversation(chat_id)
         orchestrator.analyzeConversation(chat_id)
         orchestrator.generateTitle(chat_id)
-    return _packageChatData(chat_data)
+    return _packageChatData(chat_data, chat_id)
 
 
 @app.post("/api/listChats")
@@ -82,7 +82,7 @@ def list_chats():
 def load_messages(req: LoadChatRequest):
     chat_id = req.chat_id
     chat_data = chathandler.loadChatData(chat_id)
-    return _packageChatData(chat_data)
+    return _packageChatData(chat_data, chat_id)
 
 
 @app.get("/api/status")
