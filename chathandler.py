@@ -79,7 +79,7 @@ def saveChatData(
         chat_data["title"] = title
 
     if system_prompt is not None:
-        chat_data["system_prompt"] = title
+        chat_data["system_prompt"] = system_prompt
 
     chat_data["data_format"] = 2.0
 

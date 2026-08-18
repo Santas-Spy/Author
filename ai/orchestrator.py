@@ -26,14 +26,23 @@ def chooseModel(message):
 
 def summarizeConversation(chat_id):
     setStatus("working", "Summarizing")
+
+    # Build the prompt
     prompt = config.readSetting("prompts.summarize_conversation")
-    chatText = chathandler.loadChat(chat_id)
-    text = prompt.replace("{history}", chatText)
-    text = text.replace("{max_length}", str(int(len(chatText) / 2)))
+    chat_text = chathandler.loadChat(chat_id)
+    text = prompt.replace("{history}", chat_text)
+    word_count = len(chat_text.split(" "))
+    text = text.replace("{max_length}", str(word_count))
+
+    # Generate a summary
     response = koboldInstance.sendMessage(text)
     split_response = chatformatter.seperateThinking(response)
     answer = split_response["response"]
+
+    # Save the summary
     chathandler.saveChatData(chat_id, summary=answer)
+    new_word_count = len(answer.split(" "))
+    print(f"Summarized conversation of length {word_count} to {new_word_count}")
     setStatus("ready", "Ready")
 
 
@@ -103,7 +112,7 @@ def sendUserMessage(chat_id, user_message):
     chathandler.saveChat(chat_id, chatText)
 
     # Fill in placeholders
-    user_profile = ""
+    user_profile = "[]"
     if "analysis" in chat_data:
         user_profile = chat_data["analysis"]
 

@@ -31,6 +31,11 @@ class ChatRequest(BaseModel):
     message: str
 
 
+class UpdateChatRequest(BaseModel):
+    chat_id: int
+    text: str
+
+
 class LoadChatRequest(BaseModel):
     chat_id: int
 
@@ -88,6 +93,13 @@ def load_messages(req: LoadChatRequest):
 @app.get("/api/status")
 def get_status():
     return orchestrator.getStatus()
+
+
+@app.post("/api/updateChat")
+def update_chat(req: UpdateChatRequest):
+    chat_id = req.chat_id
+    text = req.text
+    chathandler.saveChat(chat_id, text)
 
 
 @app.get("/")

@@ -53,6 +53,10 @@
                 padding: 24px;
             }
 
+            .hidden {
+                display: none !important;
+            }
+
             /* ---------- App window shell ---------- */
 
             .app-window {
@@ -183,9 +187,19 @@
                 background: var(--bg-card-hover);
                 color: var(--text-primary);
             }
+            .icon-button:disabled {
+                opacity: 0.4;
+                cursor: not-allowed;
+            }
             .icon-button svg {
                 width: 15px;
                 height: 15px;
+            }
+
+            .icon-button.editing {
+                background: var(--accent-soft);
+                border-color: var(--accent);
+                color: var(--accent);
             }
 
             /* ---------- Message window layout ---------- */
@@ -193,6 +207,14 @@
             .message-window {
                 display: flex;
                 flex: 1 1 auto;
+                min-height: 0;
+            }
+
+            .message-panel {
+                flex: 1 1 auto;
+                min-width: 0;
+                display: flex;
+                flex-direction: column;
                 min-height: 0;
             }
 
@@ -275,6 +297,10 @@
             .chat-item:hover {
                 background: var(--bg-card-hover);
                 color: var(--text-primary);
+            }
+            .chat-item:disabled {
+                opacity: 0.45;
+                cursor: not-allowed;
             }
 
             .chat-item.active {
@@ -509,6 +535,37 @@
                 }
             }
 
+            /* ---------- Edit mode (raw transcript editor) ---------- */
+
+            .edit-textarea {
+                flex: 1 1 auto;
+                min-width: 0;
+                width: 100%;
+                height: 100%;
+                resize: none;
+                border: none;
+                outline: none;
+                background: var(--bg-void);
+                color: var(--text-primary);
+                font-family: var(--font-mono);
+                font-size: 13px;
+                line-height: 1.6;
+                padding: 20px;
+            }
+            .edit-textarea::placeholder {
+                color: var(--text-muted);
+            }
+            .edit-textarea::-webkit-scrollbar {
+                width: 8px;
+            }
+            .edit-textarea::-webkit-scrollbar-thumb {
+                background: #3a3a38;
+                border-radius: 8px;
+            }
+            .edit-textarea::-webkit-scrollbar-track {
+                background: transparent;
+            }
+
             /* ---------- Composer ---------- */
 
             .composer {
@@ -615,6 +672,28 @@
 
                 <button
                     class="icon-button"
+                    id="edit-mode-button"
+                    type="button"
+                    title="Edit raw chat log"
+                    aria-label="Edit raw chat log"
+                >
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M12 20h9" />
+                        <path
+                            d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"
+                        />
+                    </svg>
+                </button>
+
+                <button
+                    class="icon-button"
                     id="new-chat-button"
                     type="button"
                     title="Start a new chat"
@@ -639,8 +718,16 @@
                     <div class="chat-item-list" id="chat-item-list"></div>
                 </nav>
 
-                <!-- Message list -->
-                <section class="message-list" id="message-list"></section>
+                <!-- Message list / raw-log editor -->
+                <div class="message-panel" id="message-panel">
+                    <section class="message-list" id="message-list"></section>
+                    <textarea
+                        class="edit-textarea hidden"
+                        id="edit-textarea"
+                        spellcheck="false"
+                        placeholder="Raw chat transcript…"
+                    ></textarea>
+                </div>
 
                 <!-- Chat info (right sidebar) -->
                 <aside class="sidebar-panel chat-info" id="chat-info">
@@ -699,6 +786,7 @@
                     loadChat: "loadChat",
                     status: "status",
                     listChats: "listChats",
+                    updateChat: "updateChat",
                 },
                 // How often to poll the server for its current status.
                 statusPollIntervalMs: 3000,
@@ -727,6 +815,10 @@
                 // Chat ids that finished responding while the user was looking at a
                 // different chat. Cleared the moment that chat is opened.
                 unreadChatIds: new Set(),
+                // Raw transcript text of the chat currently open, kept in sync so edit
+                // mode always starts from what's actually on screen.
+                rawTranscript: "",
+                editMode: false,
             };
 
             /**
@@ -736,6 +828,7 @@
              */
             const dom = {
                 messageList: document.getElementById("message-list"),
+                editTextarea: document.getElementById("edit-textarea"),
                 chatItemList: document.getElementById("chat-item-list"),
                 infoFieldList: document.getElementById("info-field-list"),
                 chatForm: document.getElementById("chat-form"),
@@ -747,6 +840,7 @@
                 statusDot: document.getElementById("status-dot"),
                 statusLabel: document.getElementById("status-label"),
                 newChatButton: document.getElementById("new-chat-button"),
+                editModeButton: document.getElementById("edit-mode-button"),
             };
 
             dom.apiUrlLabel.textContent = CONFIG.apiBaseUrl;
@@ -761,6 +855,8 @@
 
             const ICONS = {
                 assistant: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2M20 14h2M9 12v2M15 12v2"/></svg>`,
+                edit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`,
+                save: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`,
             };
 
             function scrollToBottom() {
@@ -994,6 +1090,16 @@
                 if (item) item.classList.toggle("unread", isUnread);
             }
 
+            /** Disable/enable chat switching — used while a raw-log edit is in progress. */
+            function setSidebarNavigationEnabled(enabled) {
+                dom.newChatButton.disabled = !enabled;
+                dom.chatItemList
+                    .querySelectorAll(".chat-item")
+                    .forEach((item) => {
+                        item.disabled = !enabled;
+                    });
+            }
+
             function renderChatList(chats) {
                 dom.chatItemList.innerHTML = "";
                 if (!chats || chats.length === 0) {
@@ -1008,6 +1114,7 @@
                     item.type = "button";
                     item.className = "chat-item";
                     item.dataset.chatId = id; // <-- the ID lives here, invisible to the user
+                    item.disabled = state.editMode;
                     const isActive = String(id) === String(state.chatId);
                     const isUnread =
                         !isActive && state.unreadChatIds.has(String(id));
@@ -1041,6 +1148,86 @@
                             item.dataset.chatId === String(state.chatId),
                         );
                     });
+            }
+
+            /**
+             * ---------------------------------------------------------------------
+             * Edit mode (raw transcript editor)
+             * ---------------------------------------------------------------------
+             * Toggling in swaps the rendered bubble list for a plain textarea seeded
+             * with the raw transcript. Toggling out sends whatever's in the textarea
+             * to the updateChat endpoint, then reloads the chat so the rendered view
+             * reflects what the server actually saved.
+             */
+            function enterEditMode() {
+                state.editMode = true;
+
+                dom.editTextarea.value = state.rawTranscript;
+                dom.messageList.classList.add("hidden");
+                dom.editTextarea.classList.remove("hidden");
+
+                dom.editModeButton.innerHTML = ICONS.save;
+                dom.editModeButton.title = "Save and exit edit mode";
+                dom.editModeButton.setAttribute(
+                    "aria-label",
+                    "Save and exit edit mode",
+                );
+                dom.editModeButton.classList.add("editing");
+
+                setFormEnabled(false);
+                setSidebarNavigationEnabled(false);
+
+                dom.editTextarea.focus();
+            }
+
+            async function exitEditModeAndSave() {
+                const chatId = state.chatId;
+                const editedText = dom.editTextarea.value;
+
+                dom.editModeButton.disabled = true;
+                try {
+                    await callBackend(CONFIG.endpoints.updateChat, {
+                        chat_id: chatId,
+                        text: editedText,
+                    });
+                } catch (error) {
+                    appendMessage(
+                        "system",
+                        `Could not save your edits: ${error.message}`,
+                    );
+                } finally {
+                    dom.editModeButton.disabled = false;
+                }
+
+                state.editMode = false;
+
+                dom.editTextarea.classList.add("hidden");
+                dom.messageList.classList.remove("hidden");
+
+                dom.editModeButton.innerHTML = ICONS.edit;
+                dom.editModeButton.title = "Edit raw chat log";
+                dom.editModeButton.setAttribute(
+                    "aria-label",
+                    "Edit raw chat log",
+                );
+                dom.editModeButton.classList.remove("editing");
+
+                setFormEnabled(true);
+                setSidebarNavigationEnabled(true);
+
+                // Re-fetch so the rendered transcript/info panel reflect what was saved,
+                // in case the backend normalized or rejected part of the edit.
+                if (chatId === state.chatId) {
+                    await loadChat();
+                }
+            }
+
+            function toggleEditMode() {
+                if (state.editMode) {
+                    exitEditModeAndSave();
+                } else {
+                    enterEditMode();
+                }
             }
 
             /**
@@ -1121,12 +1308,16 @@
                         chat_id: requestChatId,
                     });
 
-                    // The user may have switched chats while this was in flight — only
-                    // paint the transcript/info panel if they're still looking at it.
-                    if (requestChatId === state.chatId) {
+                    // The user may have switched chats (or entered edit mode) while this
+                    // was in flight — only paint the transcript/info panel if they're
+                    // still looking at the plain view of this same chat.
+                    const stillViewingThisChat =
+                        requestChatId === state.chatId && !state.editMode;
+                    if (stillViewingThisChat) {
                         thinkingRow.remove();
                         renderTranscript(data.text ?? "");
                         renderChatInfo(data);
+                        state.rawTranscript = data.text ?? "";
                     } else {
                         thinkingRow.remove();
                     }
@@ -1165,12 +1356,14 @@
                         message,
                     });
 
-                    const stillViewingThisChat = requestChatId === state.chatId;
+                    const stillViewingThisChat =
+                        requestChatId === state.chatId && !state.editMode;
 
                     if (stillViewingThisChat) {
                         thinkingRow.remove();
                         renderTranscript(data.text ?? "");
                         renderChatInfo(data);
+                        state.rawTranscript = data.text ?? "";
                     } else {
                         // Response finished for a chat the user has since navigated away
                         // from — don't touch the transcript they're currently looking at.
@@ -1188,14 +1381,27 @@
                         );
                     }
                 } finally {
-                    if (requestChatId === state.chatId) {
-                        setFormEnabled(true);
-                    }
+                    setFormEnabled(true);
                 }
             }
 
             /** Switch the active chat, refresh the transcript/info panel, and re-sync the sidebar. */
             async function openChat(chatId) {
+                // Switching chats abandons any unsaved raw-log edit rather than saving it.
+                if (state.editMode) {
+                    state.editMode = false;
+                    dom.editTextarea.classList.add("hidden");
+                    dom.messageList.classList.remove("hidden");
+                    dom.editModeButton.innerHTML = ICONS.edit;
+                    dom.editModeButton.title = "Edit raw chat log";
+                    dom.editModeButton.setAttribute(
+                        "aria-label",
+                        "Edit raw chat log",
+                    );
+                    dom.editModeButton.classList.remove("editing");
+                    setSidebarNavigationEnabled(true);
+                }
+
                 state.chatId = chatId;
                 dom.endpointLabel.textContent = `chat #${state.chatId}`;
                 clearMessages();
@@ -1239,6 +1445,7 @@
              */
             dom.chatForm.addEventListener("submit", sendMessage);
             dom.newChatButton.addEventListener("click", startNewChat);
+            dom.editModeButton.addEventListener("click", toggleEditMode);
 
             dom.endpointLabel.textContent = `chat #${state.chatId}`;
             appendMessage(
