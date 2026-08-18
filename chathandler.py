@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 
 
 def _loadFile(chat_id, filename):
@@ -106,3 +107,11 @@ def loadAnalysis():
         print(f"Data file {filename} was not found")
 
     return text
+
+
+def listChatIDs():
+    dir = "data/"
+    os.makedirs(dir, exist_ok=True)
+    subdirectories = [entry.name for entry in os.scandir(dir) if entry.is_dir()]
+    print("Found subdirs:", subdirectories)
+    return subdirectories

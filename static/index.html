@@ -187,6 +187,23 @@
                 height: 15px;
             }
 
+            /* ---------- Message Window ---------- */
+            .message-window {
+                display: flex;
+            }
+
+            /* ---------- Chat list ---------- */
+            .chat-list {
+                width: 10%;
+                height: 100%
+                overflow-y: auto;
+                padding: 20px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                border-right: 1px solid var(--border);
+            }
+
             /* ---------- Message list ---------- */
 
             .message-list {
@@ -422,7 +439,10 @@
             </header>
 
             <!-- Message list -->
-            <main class="message-list" id="message-list"></main>
+            <main class="message-window" id="message-window">
+                <div class="chat-list" id="chat-list"></div>
+                <div class="message-list" id="message-list"></div>
+            </main>
 
             <!-- Composer -->
             <footer class="composer">
@@ -473,6 +493,7 @@
                     chat: "chat",
                     loadChat: "loadChat",
                     status: "status",
+                    listChats: "listChats",
                 },
                 // How often to poll the server for its current status.
                 statusPollIntervalMs: 3000,
@@ -500,6 +521,7 @@
              */
             const dom = {
                 messageList: document.getElementById("message-list"),
+                chatList: document.getElementById("chat-list"),
                 chatForm: document.getElementById("chat-form"),
                 messageInput: document.getElementById("message-input"),
                 sendButton: document.getElementById("send-button"),
@@ -593,6 +615,17 @@
                     turns.push({ role, text });
                 }
                 return turns;
+            }
+
+            async function listChats() {
+                const data = await callBackend(CONFIG.endpoints.listChats, {});
+                for () {
+                    console.log(chatName);
+                    const bubble = document.createElement("div");
+                    bubble.className = "bubble";
+                    bubble.textContent = text;
+                    dom.chatList.appendChild(row);
+                }
             }
 
             function escapeRegExp(value) {
@@ -759,6 +792,7 @@
                 "Hello! Send a message below to start chatting with your AI backend.",
             );
             loadChat();
+            listChats();
             startStatusPolling();
         </script>
     </body>

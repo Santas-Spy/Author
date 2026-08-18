@@ -203,6 +203,12 @@ def send_message(req: ChatRequest):
     return {"text": chat_text}
 
 
+@app.post("/api/listChats")
+def list_chats():
+    subdirs = chathandler.listChatIDs()
+    return {"chatIDs": subdirs}
+
+
 @app.post("/api/loadChat")
 def load_messages(req: LoadChatRequest):
     chat_id = req.chat_id
