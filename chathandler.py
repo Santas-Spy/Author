@@ -109,9 +109,20 @@ def loadAnalysis():
     return text
 
 
+def loadTitle(chat_id):
+    data = loadChatData(chat_id)
+    title = None
+    if "title" in data:
+        title = data["title"]
+    return title
+
+
 def listChatIDs():
     dir = "data/"
     os.makedirs(dir, exist_ok=True)
     subdirectories = [entry.name for entry in os.scandir(dir) if entry.is_dir()]
-    print("Found subdirs:", subdirectories)
-    return subdirectories
+    chat_ids = []
+    for id in subdirectories:
+        title = loadTitle(id)
+        chat_ids.append({"id": id, "title": title})
+    return chat_ids

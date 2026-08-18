@@ -15,6 +15,7 @@
                 --bg-void: #1e1e1e;
                 --bg-headerbar: #2d2d2d;
                 --bg-composer: #2d2d2d;
+                --bg-sidebar: #232322;
                 --bg-card: #333331;
                 --bg-card-hover: #3a3a38;
                 --accent: #3584e4;
@@ -187,27 +188,154 @@
                 height: 15px;
             }
 
-            /* ---------- Message Window ---------- */
+            /* ---------- Message window layout ---------- */
+
             .message-window {
                 display: flex;
+                flex: 1 1 auto;
+                min-height: 0;
             }
 
-            /* ---------- Chat list ---------- */
-            .chat-list {
-                width: 10%;
-                height: 100%
+            /* ---------- Shared sidebar panel styling ---------- */
+            /* Used by both the chat list (left) and the chat info panel (right). */
+
+            .sidebar-panel {
+                flex: 0 0 auto;
+                width: 220px;
+                height: 100%;
+                background: var(--bg-sidebar);
                 overflow-y: auto;
-                padding: 20px;
                 display: flex;
                 flex-direction: column;
-                gap: 12px;
+            }
+
+            .sidebar-panel::-webkit-scrollbar {
+                width: 8px;
+            }
+            .sidebar-panel::-webkit-scrollbar-thumb {
+                background: #3a3a38;
+                border-radius: 8px;
+            }
+            .sidebar-panel::-webkit-scrollbar-track {
+                background: transparent;
+            }
+
+            .chat-list {
                 border-right: 1px solid var(--border);
+            }
+            .chat-info {
+                border-left: 1px solid var(--border);
+            }
+
+            .sidebar-heading {
+                flex: 0 0 auto;
+                font-family: var(--font-mono);
+                font-size: 10.5px;
+                font-weight: 500;
+                letter-spacing: 0.6px;
+                text-transform: uppercase;
+                color: var(--text-muted);
+                padding: 14px 16px 8px;
+            }
+
+            .sidebar-empty {
+                padding: 4px 16px 14px;
+                font-size: 12.5px;
+                color: var(--text-muted);
+            }
+
+            /* ---------- Chat list items ---------- */
+
+            .chat-item-list {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+                padding: 0 8px 12px;
+            }
+
+            .chat-item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 10px;
+                border-radius: 8px;
+                border: none;
+                background: transparent;
+                color: var(--text-secondary);
+                font-family: var(--font-ui);
+                font-size: 13.5px;
+                text-align: left;
+                cursor: pointer;
+                transition:
+                    background 0.15s ease,
+                    color 0.15s ease;
+            }
+
+            .chat-item:hover {
+                background: var(--bg-card-hover);
+                color: var(--text-primary);
+            }
+
+            .chat-item.active {
+                background: var(--accent-soft);
+                color: var(--text-primary);
+            }
+
+            .chat-item .chat-item-dot {
+                flex: 0 0 auto;
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: var(--text-muted);
+            }
+
+            .chat-item.active .chat-item-dot {
+                background: var(--accent);
+            }
+
+            .chat-item .chat-item-label {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            /* ---------- Chat info fields ---------- */
+
+            .info-field-list {
+                display: flex;
+                flex-direction: column;
+                gap: 14px;
+                padding: 0 16px 16px;
+            }
+
+            .info-field {
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+            }
+
+            .info-field-label {
+                font-family: var(--font-mono);
+                font-size: 10px;
+                font-weight: 500;
+                letter-spacing: 0.5px;
+                text-transform: uppercase;
+                color: var(--text-muted);
+            }
+
+            .info-field-value {
+                font-size: 13px;
+                line-height: 1.45;
+                color: var(--text-secondary);
+                word-break: break-word;
+                white-space: pre-wrap;
             }
 
             /* ---------- Message list ---------- */
 
             .message-list {
                 flex: 1 1 auto;
+                min-width: 0;
                 overflow-y: auto;
                 padding: 20px;
                 display: flex;
@@ -438,10 +566,21 @@
                 </button>
             </header>
 
-            <!-- Message list -->
             <main class="message-window" id="message-window">
-                <div class="chat-list" id="chat-list"></div>
-                <div class="message-list" id="message-list"></div>
+                <!-- Chat list (left sidebar) -->
+                <nav class="sidebar-panel chat-list" id="chat-list">
+                    <span class="sidebar-heading">Chats</span>
+                    <div class="chat-item-list" id="chat-item-list"></div>
+                </nav>
+
+                <!-- Message list -->
+                <section class="message-list" id="message-list"></section>
+
+                <!-- Chat info (right sidebar) -->
+                <aside class="sidebar-panel chat-info" id="chat-info">
+                    <span class="sidebar-heading">Details</span>
+                    <div class="info-field-list" id="info-field-list"></div>
+                </aside>
             </main>
 
             <!-- Composer -->
@@ -503,6 +642,10 @@
                     assistant: "{{[INPUT]}}",
                     user: "{{[OUTPUT]}}",
                 },
+                // Keys from the loadChat response that are metadata, not the transcript,
+                // and so belong in the chat-info panel rather than the message list.
+                infoFieldOrder: null, // null = show whatever comes back, in response order
+                infoFieldsExcluded: ["text"],
             };
 
             /**
@@ -521,7 +664,8 @@
              */
             const dom = {
                 messageList: document.getElementById("message-list"),
-                chatList: document.getElementById("chat-list"),
+                chatItemList: document.getElementById("chat-item-list"),
+                infoFieldList: document.getElementById("info-field-list"),
                 chatForm: document.getElementById("chat-form"),
                 messageInput: document.getElementById("message-input"),
                 sendButton: document.getElementById("send-button"),
@@ -537,7 +681,7 @@
 
             /**
              * ---------------------------------------------------------------------
-             * Rendering helpers
+             * Rendering helpers — message list
              * ---------------------------------------------------------------------
              * All message content is inserted via textContent, so nothing here
              * needs manual HTML-escaping and no markup can be injected.
@@ -617,17 +761,6 @@
                 return turns;
             }
 
-            async function listChats() {
-                const data = await callBackend(CONFIG.endpoints.listChats, {});
-                for () {
-                    console.log(chatName);
-                    const bubble = document.createElement("div");
-                    bubble.className = "bubble";
-                    bubble.textContent = text;
-                    dom.chatList.appendChild(row);
-                }
-            }
-
             function escapeRegExp(value) {
                 return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
             }
@@ -643,6 +776,112 @@
                     return;
                 }
                 turns.forEach(({ role, text }) => appendMessage(role, text));
+            }
+
+            /**
+             * ---------------------------------------------------------------------
+             * Chat info panel (right sidebar)
+             * ---------------------------------------------------------------------
+             * Renders every field from a loadChat response (other than the transcript
+             * text itself) as a labelled field: the key as a small caption above the
+             * value, rather than the raw chat-bubble placeholder used previously.
+             */
+            function formatInfoLabel(key) {
+                return key
+                    .replace(/([a-z])([A-Z])/g, "$1 $2") // camelCase -> camel Case
+                    .replace(/[_-]+/g, " ")
+                    .replace(/\s+/g, " ")
+                    .trim()
+                    .toUpperCase();
+            }
+
+            function formatInfoValue(value) {
+                if (value === null || value === undefined) return "—";
+                if (typeof value === "object")
+                    return JSON.stringify(value, null, 2);
+                return String(value);
+            }
+
+            function renderChatInfo(chatData) {
+                dom.infoFieldList.innerHTML = "";
+
+                const entries = Object.entries(chatData).filter(
+                    ([key]) => !CONFIG.infoFieldsExcluded.includes(key),
+                );
+
+                if (entries.length === 0) {
+                    const empty = document.createElement("div");
+                    empty.className = "sidebar-empty";
+                    empty.textContent = "No details for this chat.";
+                    dom.infoFieldList.appendChild(empty);
+                    return;
+                }
+
+                for (const [key, value] of entries) {
+                    const field = document.createElement("div");
+                    field.className = "info-field";
+
+                    const label = document.createElement("span");
+                    label.className = "info-field-label";
+                    label.textContent = formatInfoLabel(key);
+
+                    const val = document.createElement("span");
+                    val.className = "info-field-value";
+                    val.textContent = formatInfoValue(value);
+
+                    field.appendChild(label);
+                    field.appendChild(val);
+                    dom.infoFieldList.appendChild(field);
+                }
+            }
+
+            /**
+             * ---------------------------------------------------------------------
+             * Chat list (left sidebar)
+             * ---------------------------------------------------------------------
+             */
+            function renderChatList(chats) {
+                dom.chatItemList.innerHTML = "";
+                if (!chats || chats.length === 0) {
+                    const empty = document.createElement("div");
+                    empty.className = "sidebar-empty";
+                    empty.textContent = "No chats yet.";
+                    dom.chatItemList.appendChild(empty);
+                    return;
+                }
+                chats.forEach(({ id, title }) => {
+                    const item = document.createElement("button");
+                    item.type = "button";
+                    item.className = "chat-item";
+                    item.dataset.chatId = id; // <-- the ID lives here, invisible to the user
+                    item.classList.toggle(
+                        "active",
+                        String(id) === String(state.chatId),
+                    );
+
+                    const dot = document.createElement("span");
+                    dot.className = "chat-item-dot";
+
+                    const label = document.createElement("span");
+                    label.className = "chat-item-label";
+                    label.textContent = title || `Chat #${id}`; // <-- what's actually shown
+
+                    item.appendChild(dot);
+                    item.appendChild(label);
+                    item.addEventListener("click", () => openChat(id)); // closure already has the real id
+                    dom.chatItemList.appendChild(item);
+                });
+            }
+
+            function highlightActiveChatItem() {
+                dom.chatItemList
+                    .querySelectorAll(".chat-item")
+                    .forEach((item) => {
+                        item.classList.toggle(
+                            "active",
+                            item.dataset.chatId === String(state.chatId),
+                        );
+                    });
             }
 
             /**
@@ -723,6 +962,7 @@
                     });
                     thinkingRow.remove();
                     renderTranscript(data.text ?? "");
+                    renderChatInfo(data);
                 } catch (error) {
                     thinkingRow.remove();
                     appendMessage(
@@ -750,6 +990,7 @@
                     });
                     thinkingRow.remove();
                     renderTranscript(data.text ?? "");
+                    renderChatInfo(data);
                 } catch (error) {
                     thinkingRow.remove();
                     appendMessage(
@@ -761,21 +1002,45 @@
                 }
             }
 
-            function startNewChat() {
-                state.chatId += 1;
+            /** Switch the active chat, refresh the transcript/info panel, and re-sync the sidebar. */
+            async function openChat(chatId) {
+                state.chatId = chatId;
                 dom.endpointLabel.textContent = `chat #${state.chatId}`;
                 clearMessages();
+                highlightActiveChatItem();
+                await loadChat();
+            }
+
+            async function startNewChat() {
+                const nextChatId = state.chatId + 1;
+                await openChat(nextChatId);
                 appendMessage(
                     "assistant",
-                    `Started a new chat session (#${state.chatId}).`,
+                    `Started a new chat session (#${nextChatId}).`,
                 );
-                loadChat();
+                await refreshChatList();
             }
 
             function setFormEnabled(enabled) {
                 dom.messageInput.disabled = !enabled;
                 dom.sendButton.disabled = !enabled;
                 if (enabled) dom.messageInput.focus();
+            }
+
+            async function refreshChatList() {
+                try {
+                    const data = await callBackend(
+                        CONFIG.endpoints.listChats,
+                        {},
+                    );
+                    renderChatList(data.chatIDs ?? []);
+                } catch (error) {
+                    dom.chatItemList.innerHTML = "";
+                    const empty = document.createElement("div");
+                    empty.className = "sidebar-empty";
+                    empty.textContent = "Couldn't load chat list.";
+                    dom.chatItemList.appendChild(empty);
+                }
             }
 
             /**
@@ -792,7 +1057,7 @@
                 "Hello! Send a message below to start chatting with your AI backend.",
             );
             loadChat();
-            listChats();
+            refreshChatList();
             startStatusPolling();
         </script>
     </body>

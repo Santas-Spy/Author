@@ -2,52 +2,12 @@ import datetime
 import json
 from json import JSONDecodeError
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
-
 import chathandler
 import config
 from ai import chatformatter
 from ai.kobold import koboldInstance
 
-app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
 state = {"status": "ready", "message": "Ready"}
-
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins for local testing
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-"""
-Flow Chart
------------
-
-* User Sends Message
-* Tiny Model decides where to route
-* Load decided Model
-* Send request and wait for response
-* Display Response
-* If context > max context then summarize
-* Every few minutes scan all conversations and build a user profile
-"""
-
-
-class ChatRequest(BaseModel):
-    chat_id: int
-    message: str
-
-
-class LoadChatRequest(BaseModel):
-    chat_id: int
 
 
 def sendMessage(text):
@@ -152,21 +112,6 @@ def sendUserMessage(chat_id, user_message):
     return chatText
 
 
-def chatLoop(chat_id, user_message):
-    chatText = sendUserMessage(chat_id, user_message)
-
-    print("Chat Length: " + str(len(chatText)))
-    if len(chatText) > 500:
-        print("Summarizing Conversation")
-        summarizeConversation(chat_id)
-        print("Catagorizing Conversation")
-        catagorizeConversation(chat_id)
-        print("Analyzing Conversation")
-        analyzeConversation(chat_id)
-        print("Generating Title")
-        generateTitle(chat_id)
-
-
 def startProgram():
     running = True
     chat_id = 2
@@ -178,7 +123,13 @@ def startProgram():
             chat_id = chat_id + 1
             print("New ID: " + str(chat_id))
         else:
-            chatLoop(chat_id, user_message)
+            sendUserMessage(chat_id, user_message)
+            chat_data = chathandler.loadChatData(chat_id)
+            if len(chat_data["text"]) > 500:
+                summarizeConversation(chat_id)
+                catagorizeConversation(chat_id)
+                analyzeConversation(chat_id)
+                generateTitle(chat_id)
 
 
 def setStatus(status="working", message=""):
@@ -187,41 +138,5 @@ def setStatus(status="working", message=""):
     state = {"status": status, "message": message}
 
 
-@app.on_event("startup")
-def startup_event():
-    koboldInstance.setEndpoint(config.readSetting("kobold.url"))
-
-
-@app.post("/api/chat")
-def send_message(req: ChatRequest):
-    chat_id = req.chat_id
-    user_message = req.message
-
-    chatLoop(chat_id, user_message)
-    chat_text = chathandler.loadChat(chat_id)
-
-    return {"text": chat_text}
-
-
-@app.post("/api/listChats")
-def list_chats():
-    subdirs = chathandler.listChatIDs()
-    return {"chatIDs": subdirs}
-
-
-@app.post("/api/loadChat")
-def load_messages(req: LoadChatRequest):
-    chat_id = req.chat_id
-    chat_text = chathandler.loadChat(chat_id)
-    return {"text": chat_text}
-
-
-@app.get("/api/status")
-def get_status():
-    global state
+def getStatus():
     return state
-
-
-@app.get("/")
-async def read_index():
-    return FileResponse("static/index.html")
