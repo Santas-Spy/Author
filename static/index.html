@@ -911,6 +911,7 @@
              * defaults to "assistant".
              */
             function parseTranscript(rawText) {
+                rawText = rawText.trimStart();
                 const markerPattern = new RegExp(
                     `(${escapeRegExp(CONFIG.markers.assistant)}|${escapeRegExp(CONFIG.markers.user)})`,
                 );
@@ -1254,13 +1255,27 @@
                     const response = await fetch(
                         CONFIG.apiBaseUrl + CONFIG.endpoints.status,
                     );
-                    if (!response.ok) {
+                    if (!response.ok)
                         throw new Error(
                             `Server responded with status ${response.status}`,
                         );
-                    }
                     const data = await response.json();
+
+                    const wasWorking =
+                        dom.statusDot.dataset.state === "working";
                     setStatus(data.status, data.message);
+
+                    // Background post-processing (title, summary, etc.) just finished for
+                    // the chat we're viewing — refresh so the sidebar/info panel catch up.
+                    if (
+                        wasWorking &&
+                        data.status === "ready" &&
+                        data.chat_id !== undefined &&
+                        String(data.chat_id) === String(state.chatId) &&
+                        !state.editMode
+                    ) {
+                        loadChat();
+                    }
                 } catch (error) {
                     setStatus(
                         "offline",
@@ -1336,48 +1351,67 @@
 
             async function sendMessage(event) {
                 event.preventDefault();
-
                 const message = dom.messageInput.value.trim();
                 if (!message) return;
 
-                // Snapshot which chat this request belongs to. state.chatId can move on
-                // (user switches chats) before the response comes back, so every use of
-                // "the current chat" below has to compare against this, not state.chatId.
                 const requestChatId = state.chatId;
-
                 appendMessage("user", message);
                 dom.messageInput.value = "";
                 setFormEnabled(false);
 
-                const thinkingRow = appendThinkingIndicator();
+                let liveBubble = null;
+                if (requestChatId === state.chatId && !state.editMode) {
+                    const row = appendMessage("assistant", "");
+                    liveBubble = row.querySelector(".bubble");
+                } else {
+                    setChatUnread(requestChatId, true);
+                }
+
+                let accumulated = "";
                 try {
-                    const data = await callBackend(CONFIG.endpoints.chat, {
-                        chat_id: requestChatId,
-                        message,
-                    });
-
-                    const stillViewingThisChat =
-                        requestChatId === state.chatId && !state.editMode;
-
-                    if (stillViewingThisChat) {
-                        thinkingRow.remove();
-                        renderTranscript(data.text ?? "");
-                        renderChatInfo(data);
-                        state.rawTranscript = data.text ?? "";
-                    } else {
-                        // Response finished for a chat the user has since navigated away
-                        // from — don't touch the transcript they're currently looking at.
-                        thinkingRow.remove();
-                        setChatUnread(requestChatId, true);
+                    const response = await fetch(
+                        CONFIG.apiBaseUrl + CONFIG.endpoints.chat,
+                        {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                chat_id: requestChatId,
+                                message: message,
+                            }),
+                        },
+                    );
+                    if (!response.ok || !response.body) {
+                        throw new Error(
+                            `Server responded with status ${response.status}`,
+                        );
                     }
 
-                    if (data.title) updateChatTitle(requestChatId, data.title);
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        accumulated += decoder.decode(value, { stream: true });
+                        if (
+                            requestChatId === state.chatId &&
+                            !state.editMode &&
+                            liveBubble
+                        ) {
+                            liveBubble.textContent = accumulated;
+                            scrollToBottom();
+                        }
+                    }
+
+                    state.rawTranscript +=
+                        "{{[INPUT]}}" + message + "{{[OUTPUT]}}" + accumulated;
+                    if (requestChatId === state.chatId && !state.editMode) {
+                        await loadChat(); // pick up any server-side normalization
+                    }
                 } catch (error) {
-                    thinkingRow.remove();
                     if (requestChatId === state.chatId) {
                         appendMessage(
                             "system",
-                            `Could not reach the backend at ${CONFIG.apiBaseUrl}. Make sure the FastAPI server is running.\n(${error.message})`,
+                            `Could not reach the backend at ${CONFIG.apiBaseUrl}.\n(${error.message})`,
                         );
                     }
                 } finally {

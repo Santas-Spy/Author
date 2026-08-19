@@ -14,7 +14,7 @@ def sendMessage(text):
     return koboldInstance.sendMessage(text)
 
 
-def chooseModel(message):
+def chooseModel(message: str):
     setStatus("working", "Choosing Model")
     text = config.readSetting("prompts.choose_model")
     text = text.replace("{request}", message)
@@ -22,6 +22,7 @@ def chooseModel(message):
     split_response = chatformatter.seperateThinking(response)
     answer = split_response["response"]
     setStatus("ready", "Ready")
+    koboldInstance.loadModel(answer)
 
 
 def summarizeConversation(chat_id):
@@ -121,14 +122,18 @@ def sendUserMessage(chat_id, user_message):
     prompt = prompt.replace("{date}", current_date)
 
     # Choose the model
-    model = chooseModel(user_message)
-    koboldInstance.loadModel(model)
+    chooseModel(user_message)
 
-    # Send the message
+    # Send the message, streaming tokens as they arrive
     setStatus("working", "Thinking")
     message = prompt + chatText
-    response = sendMessage(message)
-    split_response = chatformatter.seperateThinking(response)
+    streamed_response = ""
+    for token in koboldInstance.generate(message):
+        streamed_response += token
+        yield token
+        print(token, end="", flush=True)
+    print()
+    split_response = chatformatter.seperateThinking(streamed_response)
     chatText = chatText + split_response["response"]
     chathandler.saveChat(chat_id, chatText)
     setStatus("ready", "Ready")

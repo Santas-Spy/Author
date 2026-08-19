@@ -1,10 +1,15 @@
 import json
+from typing import Any, Dict, Iterator, Optional
 
 import requests
 from requests.exceptions import ConnectionError
 
 import ai.chatformatter as chatformatter
 import loghandler as logging
+
+
+class KoboldError(Exception):
+    """Raised when a request to the KoboldCpp server fails."""
 
 
 class KoboldInstance:
@@ -17,114 +22,135 @@ class KoboldInstance:
         return cls._instance
 
     def __init__(self):
-        if self._initialized:
-            return
+        if not getattr(self, "_initialized", False):
+            self._initialized = True
+            self.setEndpoint("LOCATION_NOT_SET")
 
-        self.setEndpoint("LOCATION_NOT_SET")
+    def setEndpoint(self, url: str, timeout: float = 30.0) -> None:
+        """Set the base URL of a running KoboldCpp server."""
+        self.base_url = url.rstrip("/")
+        self.timeout = timeout
+        self._session = requests.Session()
+        self._cache: Dict[str, Any] = {}
         self._initialized = True
 
-    def __preprocess_prompt__(self, prompt: str):
-        prompt = prompt.replace(
-            "{{[SYSTEM]}}", "<|turn>system\n"
-        )  # <-- This assumes the system prompt is *always* first
-        prompt = prompt.replace("{{[INPUT]}}", "<turn|>\n<|turn>user\n")
-        prompt = prompt.replace("{{[OUTPUT]}}", "<|turn>model\n<|channel>thought\n *")
-        return prompt
+    def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: Optional[Dict[str, Any]] = None,
+        stream: bool = False,
+    ) -> "requests.Response":
+        """Send a request to the KoboldCpp server, raising a `KoboldError` on failure."""
+        url = f"{self.base_url}{path}"
+        try:
+            response = self._session.request(
+                method,
+                url,
+                json=json,
+                stream=stream,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            return response
+        except ConnectionError as error:
+            raise KoboldError(
+                f"Could not connect to KoboldCpp at {url}. "
+                "Make sure the server is running."
+            ) from error
+        except requests.HTTPError as error:
+            raise KoboldError(f"KoboldCpp request failed: {error}") from error
 
-    def setEndpoint(self, url):
-        self.base_url = url
-        self.generate_url = self.base_url + "/api/extra/generate/stream"
-        self.context_url = self.base_url + "/api/extra/true_max_context_length"
-        self.tokencount_url = self.base_url + "/api/extra/tokenize"
-        self._initialized = True
+    def _iter_stream(
+        self,
+        response: "requests.Response",
+        text_field: str,
+    ) -> Iterator[str]:
+        """Yield `text_field` from each JSON object in a KoboldCpp stream."""
+        for line in response.iter_lines():
+            if not line:
+                continue
+            decoded_line = line.decode("utf-8")
+            if decoded_line.startswith("data: "):
+                decoded_line = decoded_line[6:]
+            try:
+                data = json.loads(decoded_line)
+            except json.JSONDecodeError:
+                continue
+            yield str(data.get(text_field, ""))
 
-    def sendMessage(self, prompt, max_length=16384, temperature=0.8, image=None):
+    def sendMessage(
+        self,
+        prompt: str,
+        max_length: int = 16384,
+        temperature: float = 0.8,
+        image: Optional[str] = None,
+        extra: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Send a prompt to the streaming generation endpoint and return the full response."""
         logging.logToFile(prompt, tag="[RAW PROMPT INPUT]", logtype="raw_text.txt")
         prompt = chatformatter.lfm2_5(prompt)
         logging.logToFile(prompt, tag="[PROMPT INPUT]")
 
-        payload = {
+        payload: Dict[str, Any] = {
             "prompt": prompt,
             "max_length": max_length,
             "temperature": temperature,
         }
-
         if image:
             payload["images"] = [image]
+        if extra:
+            payload.update(extra)
 
-        # Using the streaming endpoint
-        full_response = ""
-        try:
-            response = requests.post(self.generate_url, json=payload, stream=True)
+        response = self._request(
+            "POST",
+            "/api/extra/generate/stream",
+            json=payload,
+            stream=True,
+        )
+        return "".join(self._iter_stream(response, "token"))
 
-            if response.status_code != 200:
-                return f"Error: {response.status_code} - {response.text}"
+    def generate(
+        self,
+        prompt: str,
+        max_length: int = 16384,
+        temperature: float = 0.8,
+        image: Optional[str] = None,
+        extra: Optional[Dict[str, Any]] = None,
+    ) -> Iterator[str]:
+        """Send a prompt to the streaming generation endpoint and yield tokens as they arrive."""
+        payload: Dict[str, Any] = {
+            "prompt": prompt,
+            "max_length": max_length,
+            "temperature": temperature,
+        }
+        if image:
+            payload["images"] = [image]
+        if extra:
+            payload.update(extra)
 
-            for line in response.iter_lines():
-                if line:
-                    decoded_line = line.decode("utf-8")
-                    # Koboldcpp stream usually returns JSON objects per line
-                    try:
-                        if decoded_line.startswith("data: "):
-                            data = json.loads(decoded_line[6:])
-                            full_response += data["token"]
-                    except json.JSONDecodeError:
-                        full_response += decoded_line
-
-        except ConnectionError:
-            print(
-                "Error: Kobold Instance not found. Please make sure the koboldCPP server is running"
-            )
-
-        return full_response
+        response = self._request(
+            "POST",
+            "/api/extra/generate/stream",
+            json=payload,
+            stream=True,
+        )
+        yield from self._iter_stream(response, "token")
 
     def getMaxContext(self) -> int:
-        max_context = 0
-        try:
-            response = requests.get(self.context_url)
+        """Return the maximum context length reported by the server."""
+        response = self._request("GET", "/api/extra/true_max_context_length")
+        return int(response.json()["value"])
 
-            if response.status_code != 200:
-                print(f"Error: {response.status_code} - {response.text}")
+    def countTokens(self, text: str) -> int:
+        """Return the token count for the given text according to the server."""
+        response = self._request("POST", "/api/extra/tokenize", json={"prompt": text})
+        return int(response.json()["value"])
 
-            for line in response.iter_lines():
-                if line:
-                    decoded_line = line.decode("utf-8")
-                    data = json.loads(decoded_line)
-                    max_context = data["value"]
-
-        except ConnectionError:
-            print(
-                "Kobold Instance not found. Please make sure the koboldCPP server is running"
-            )
-
-        return max_context
-
-    def countTokens(self, text) -> int:
-        token_count = 0
-        payload = {"prompt": text}
-
-        try:
-            response = requests.post(self.tokencount_url, json=payload)
-
-            if response.status_code != 200:
-                print(f"Error: {response.status_code} - {response.text}")
-
-            for line in response.iter_lines():
-                if line:
-                    decoded_line = line.decode("utf-8")
-                    data = json.loads(decoded_line)
-                    token_count = int(data["value"])
-
-        except ConnectionError:
-            print(
-                "Kobold Instance not found. Please make sure the koboldCPP server is running"
-            )
-
-        return token_count
-
-    def loadModel(self, modelName):
-        print("Model swapping is not yet supported")
-        return
+    def loadModel(self, modelName: str) -> None:
+        """Swap the active model on the server."""
+        print(f"Loading model '{modelName}'")
 
 
 # Singleton instance

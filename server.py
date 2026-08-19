@@ -1,10 +1,11 @@
 from turtle import done
 
-from fastapi import FastAPI
+from fastapi import BackgroundTasks, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette.concurrency import iterate_in_threadpool
 
 import ai.orchestrator as orchestrator
 import chathandler
@@ -57,24 +58,36 @@ def _packageChatData(raw_data, chat_id):
     return data
 
 
-@app.on_event("startup")
-def startup_event():
-    koboldInstance.setEndpoint(config.readSetting("kobold.url"))
-
-
-@app.post("/api/chat")
-def send_message(req: ChatRequest):
-    chat_id = req.chat_id
-    user_message = req.message
-
-    orchestrator.sendUserMessage(chat_id, user_message)
+def run_post_processing(chat_id):
     chat_data = chathandler.loadChatData(chat_id)
     if len(chat_data["text"]) > 500:
         orchestrator.summarizeConversation(chat_id)
         orchestrator.catagorizeConversation(chat_id)
         orchestrator.analyzeConversation(chat_id)
         orchestrator.generateTitle(chat_id)
-    return _packageChatData(chat_data, chat_id)
+        orchestrator.setStatus("ready", "Ready")
+
+
+@app.on_event("startup")
+def startup_event():
+    koboldInstance.setEndpoint(config.readSetting("kobold.url"))
+
+
+@app.post("/api/chat")
+async def send_message(req: ChatRequest, background_tasks: BackgroundTasks):
+    chat_id = req.chat_id
+    user_message = req.message
+
+    def token_gen():
+        yield from orchestrator.sendUserMessage(chat_id, user_message)
+
+    background_tasks.add_task(run_post_processing, chat_id)
+
+    return StreamingResponse(
+        iterate_in_threadpool(token_gen()),
+        media_type="text/plain; charset=utf-8",
+        headers={"X-Accel-Buffering": "no"},  # stop nginx-style proxies from buffering
+    )
 
 
 @app.post("/api/listChats")
