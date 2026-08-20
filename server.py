@@ -1,3 +1,4 @@
+import json
 from turtle import done
 
 from fastapi import BackgroundTasks, FastAPI
@@ -79,7 +80,8 @@ async def send_message(req: ChatRequest, background_tasks: BackgroundTasks):
     user_message = req.message
 
     def token_gen():
-        yield from orchestrator.sendUserMessage(chat_id, user_message)
+        for item in orchestrator.sendUserMessage(chat_id, user_message):
+            yield json.dumps(item) + "\n"
 
     background_tasks.add_task(run_post_processing, chat_id)
 

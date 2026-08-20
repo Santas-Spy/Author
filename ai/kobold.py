@@ -4,8 +4,8 @@ from typing import Any, Dict, Iterator, Optional
 import requests
 from requests.exceptions import ConnectionError
 
-import ai.chatformatter as chatformatter
 import loghandler as logging
+from ai import chatformatter
 
 
 class KoboldError(Exception):
@@ -56,8 +56,7 @@ class KoboldInstance:
             return response
         except ConnectionError as error:
             raise KoboldError(
-                f"Could not connect to KoboldCpp at {url}. "
-                "Make sure the server is running."
+                f"Could not connect to KoboldCpp at {url}. Make sure the server is running."
             ) from error
         except requests.HTTPError as error:
             raise KoboldError(f"KoboldCpp request failed: {error}") from error

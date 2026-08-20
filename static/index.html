@@ -503,6 +503,41 @@
                 border: 1px solid rgba(224, 27, 36, 0.35);
             }
 
+            /* ---------- Streamed-token animation ---------- */
+            /* Each chunk that arrives from the SSE/stream reader is wrapped in a
+     .token-in span so it can fade/bob into place individually, rather than
+     the whole bubble re-painting flatly on every chunk. Kept short and snappy
+     so a fast stream doesn't feel like it's fighting its own animation. */
+            .token-in {
+                display: inline;
+                animation: token-fade-up-in 360ms
+                    cubic-bezier(0.34, 1.56, 0.64, 1) both;
+            }
+
+            @keyframes token-fade-up-in {
+                0% {
+                    opacity: 0;
+                    transform: translateY(8px);
+                }
+                55% {
+                    opacity: 1;
+                    transform: translateY(-2px);
+                }
+                80% {
+                    transform: translateY(1px);
+                }
+                100% {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .token-in {
+                    animation: none;
+                }
+            }
+
             .thinking-dots {
                 display: flex;
                 gap: 4px;
@@ -883,6 +918,20 @@
                 dom.messageList.appendChild(row);
                 scrollToBottom();
                 return row;
+            }
+
+            /**
+             * Append one streamed chunk to a live assistant bubble as its own
+             * .token-in span, so it fades/bobs into place independently instead of
+             * the whole bubble repainting flatly on every chunk. Cheap: one small
+             * element per chunk received, not per character.
+             */
+            function appendStreamedChunk(bubbleEl, text) {
+                if (!text) return;
+                const span = document.createElement("span");
+                span.className = "token-in";
+                span.textContent = text;
+                bubbleEl.appendChild(span);
             }
 
             /** Show an animated "thinking" bubble and return it so it can be removed later. */
@@ -1351,15 +1400,18 @@
 
             async function sendMessage(event) {
                 event.preventDefault();
+
                 const message = dom.messageInput.value.trim();
                 if (!message) return;
 
                 const requestChatId = state.chatId;
+
                 appendMessage("user", message);
                 dom.messageInput.value = "";
                 setFormEnabled(false);
 
                 let liveBubble = null;
+
                 if (requestChatId === state.chatId && !state.editMode) {
                     const row = appendMessage("assistant", "");
                     liveBubble = row.querySelector(".bubble");
@@ -1367,19 +1419,23 @@
                     setChatUnread(requestChatId, true);
                 }
 
-                let accumulated = "";
+                let finalText = "";
+
                 try {
                     const response = await fetch(
                         CONFIG.apiBaseUrl + CONFIG.endpoints.chat,
                         {
                             method: "POST",
-                            headers: { "Content-Type": "application/json" },
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
                             body: JSON.stringify({
                                 chat_id: requestChatId,
                                 message: message,
                             }),
                         },
                     );
+
                     if (!response.ok || !response.body) {
                         throw new Error(
                             `Server responded with status ${response.status}`,
@@ -1388,24 +1444,141 @@
 
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
+
+                    // The server sends newline-delimited JSON (NDJSON).
+                    // A network chunk is not necessarily a complete JSON object,
+                    // so keep incomplete data in this buffer.
+                    let buffer = "";
+
                     while (true) {
                         const { done, value } = await reader.read();
+
                         if (done) break;
-                        accumulated += decoder.decode(value, { stream: true });
-                        if (
-                            requestChatId === state.chatId &&
-                            !state.editMode &&
-                            liveBubble
-                        ) {
-                            liveBubble.textContent = accumulated;
-                            scrollToBottom();
+
+                        buffer += decoder.decode(value, {
+                            stream: true,
+                        });
+
+                        const lines = buffer.split("\n");
+
+                        // Keep the final incomplete line for the next chunk.
+                        buffer = lines.pop();
+
+                        for (const line of lines) {
+                            if (!line.trim()) continue;
+
+                            let data;
+
+                            try {
+                                data = JSON.parse(line);
+                            } catch (error) {
+                                console.error(
+                                    "Invalid JSON received from server:",
+                                    line,
+                                    error,
+                                );
+                                continue;
+                            }
+
+                            switch (data.type) {
+                                case "token":
+                                    if (
+                                        requestChatId === state.chatId &&
+                                        !state.editMode &&
+                                        liveBubble
+                                    ) {
+                                        appendStreamedChunk(
+                                            liveBubble,
+                                            data.token || "",
+                                        );
+                                        scrollToBottom();
+                                    }
+                                    break;
+
+                                case "status":
+                                    console.log(
+                                        "Chat status:",
+                                        data.status,
+                                        data.message,
+                                    );
+                                    break;
+
+                                case "complete":
+                                    // The backend has finished generating the response.
+                                    finalText = data.text || "";
+                                    break;
+
+                                case "error":
+                                    throw new Error(
+                                        data.message ||
+                                            "The server returned an error.",
+                                    );
+
+                                default:
+                                    console.warn(
+                                        "Unknown event type from server:",
+                                        data,
+                                    );
+                                    break;
+                            }
+                        }
+                    }
+
+                    // Flush any remaining decoder data.
+                    buffer += decoder.decode();
+
+                    // Usually the server terminates every JSON object with \n,
+                    // but handle a final unterminated object just in case.
+                    if (buffer.trim()) {
+                        try {
+                            const data = JSON.parse(buffer);
+
+                            switch (data.type) {
+                                case "token":
+                                    if (
+                                        requestChatId === state.chatId &&
+                                        !state.editMode &&
+                                        liveBubble
+                                    ) {
+                                        appendStreamedChunk(
+                                            liveBubble,
+                                            data.token || "",
+                                        );
+                                        scrollToBottom();
+                                    }
+                                    break;
+
+                                case "complete":
+                                    finalText = data.text || "";
+                                    break;
+
+                                case "error":
+                                    throw new Error(
+                                        data.message ||
+                                            "The server returned an error.",
+                                    );
+
+                                default:
+                                    console.warn(
+                                        "Unknown final event type:",
+                                        data,
+                                    );
+                            }
+                        } catch (error) {
+                            console.error(
+                                "Invalid final JSON received from server:",
+                                buffer,
+                                error,
+                            );
                         }
                     }
 
                     state.rawTranscript +=
-                        "{{[INPUT]}}" + message + "{{[OUTPUT]}}" + accumulated;
+                        "{{[INPUT]}}" + message + "{{[OUTPUT]}}" + finalText;
+
                     if (requestChatId === state.chatId && !state.editMode) {
-                        await loadChat(); // pick up any server-side normalization
+                        // Pick up any server-side normalization.
+                        await loadChat();
                     }
                 } catch (error) {
                     if (requestChatId === state.chatId) {

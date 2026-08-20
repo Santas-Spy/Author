@@ -1,0 +1,12 @@
+* Projects memory which contains important snippets from code pasted in
+    - Quick cache for memory with important questions surrounding a project
+
+* Memory Tool
+    - Allow the model to create memory snippets of important sections of a conversation
+        - While inactive a chat can be reprocessed to find important snippets such as code blocks
+        - The model can decide if its important
+        - The model can create a snippet which saves the text along with a very short description and ID
+    - Allow the model to retrieve memory snippets
+        - The model can ask to list memories if it might be relevant
+        - The model can see the descriptions and ID's of the memories
+        - The model can choose to read the memory based on its description and if its relevant

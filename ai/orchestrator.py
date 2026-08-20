@@ -10,7 +10,7 @@ from ai.kobold import koboldInstance
 state = {"status": "ready", "message": "Ready"}
 
 
-def sendMessage(text):
+def sendMessage(text: str):
     return koboldInstance.sendMessage(text)
 
 
@@ -25,7 +25,7 @@ def chooseModel(message: str):
     koboldInstance.loadModel(answer)
 
 
-def summarizeConversation(chat_id):
+def summarizeConversation(chat_id: int):
     setStatus("working", "Summarizing")
 
     # Build the prompt
@@ -47,7 +47,7 @@ def summarizeConversation(chat_id):
     setStatus("ready", "Ready")
 
 
-def analyzeConversation(chat_id):
+def analyzeConversation(chat_id: int):
     setStatus("working", "Analyzing")
     prompt = config.readSetting("prompts.analyze_conversation")
     chatText = chathandler.loadChat(chat_id)
@@ -70,7 +70,7 @@ def analyzeConversation(chat_id):
     setStatus("ready", "Ready")
 
 
-def catagorizeConversation(chat_id):
+def catagorizeConversation(chat_id: int):
     setStatus("working", "Catagorizing")
     prompt = config.readSetting("prompts.catagorize_conversation")
     chatText = chathandler.loadChat(chat_id)
@@ -82,7 +82,7 @@ def catagorizeConversation(chat_id):
     setStatus("ready", "Ready")
 
 
-def generateTitle(chat_id):
+def generateTitle(chat_id: int):
     setStatus("working", "Generating Title")
     prompt = config.readSetting("prompts.title_generation")
     chatText = chathandler.loadChat(chat_id)
@@ -94,7 +94,7 @@ def generateTitle(chat_id):
     setStatus("ready", "Ready")
 
 
-def sendUserMessage(chat_id, user_message):
+def sendUserMessage(chat_id: int, user_message: str):
     chat_data = chathandler.loadChatData(chat_id)
 
     # Build the prompt
@@ -130,7 +130,7 @@ def sendUserMessage(chat_id, user_message):
     streamed_response = ""
     for token in koboldInstance.generate(message):
         streamed_response += token
-        yield token
+        yield {"type": "token", "chat_id": chat_id, "token": token}
         print(token, end="", flush=True)
     print()
     split_response = chatformatter.seperateThinking(streamed_response)
@@ -138,7 +138,7 @@ def sendUserMessage(chat_id, user_message):
     chathandler.saveChat(chat_id, chatText)
     setStatus("ready", "Ready")
 
-    return chatText
+    yield {"type": "complete", "chat_id": chat_id, "text": chatText}
 
 
 def startProgram():
@@ -161,7 +161,7 @@ def startProgram():
                 generateTitle(chat_id)
 
 
-def setStatus(status="working", message=""):
+def setStatus(status: str = "working", message: str = ""):
     global state
     print("Set state: " + json.dumps(state))
     state = {"status": status, "message": message}
