@@ -2,6 +2,7 @@
     - Quick cache for memory with important questions surrounding a project
 
 * Memory Tool
+    - Allow model to auto cleanup and remove duplicates from user info
     - Allow the model to create memory snippets of important sections of a conversation
         - While inactive a chat can be reprocessed to find important snippets such as code blocks
         - The model can decide if its important

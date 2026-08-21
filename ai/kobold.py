@@ -116,6 +116,7 @@ class KoboldInstance:
         max_length: int = 16384,
         temperature: float = 0.8,
         image: Optional[str] = None,
+        format: bool = True,
         extra: Optional[Dict[str, Any]] = None,
     ) -> Iterator[str]:
         """Send a prompt to the streaming generation endpoint and yield tokens as they arrive."""
@@ -128,6 +129,12 @@ class KoboldInstance:
             payload["images"] = [image]
         if extra:
             payload.update(extra)
+
+        if format:
+            logging.logToFile(prompt, tag="[RAW PROMPT INPUT]", logtype="raw_text.txt")
+            prompt = chatformatter.replacePlaceholders(prompt, "qwen")
+
+        logging.logToFile(prompt, tag="[PROMPT INPUT]")
 
         response = self._request(
             "POST",

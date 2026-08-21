@@ -15,6 +15,7 @@ def sendMessage(text: str):
 
 
 def chooseModel(message: str):
+    return  # Skip this for now since model loading isn't supported
     setStatus("working", "Choosing Model")
     text = config.readSetting("prompts.choose_model")
     text = text.replace("{request}", message)
@@ -109,8 +110,11 @@ def sendUserMessage(chat_id: int, user_message: str):
     chatText = ""
     if "text" in chat_data:
         chatText = chat_data["text"]
-    chatText = chatText + "{{[INPUT]}}" + user_message + "{{[OUTPUT]}}"
-    chathandler.saveChat(chat_id, chatText)
+
+    # Allow continuations
+    if user_message != None and user_message != "":
+        chatText = chatText + "{{[INPUT]}}" + user_message + "{{[OUTPUT]}}"
+        chathandler.saveChat(chat_id, chatText)
 
     # Fill in placeholders
     user_profile = "[]"

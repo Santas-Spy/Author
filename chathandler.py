@@ -2,6 +2,8 @@ import json
 import os
 from pathlib import Path
 
+CURRENT_DATA_VER = 2.1
+
 
 def _loadFile(chat_id, filename):
     dir = f"data/{chat_id}"
@@ -36,7 +38,7 @@ def saveSummary(chat_id, text):
 def loadChat(chat_id) -> str:
     data = loadChatData(chat_id)
     chat_text = ""
-    if "text" in data:
+    if "text" in data and data["text"] != None:
         chat_text = data["text"]
     return chat_text
 
@@ -49,40 +51,23 @@ def loadSummary(chat_id) -> str:
     return summary
 
 
-def saveChatData(
-    chat_id,
-    text=None,
-    summary=None,
-    tags=None,
-    analysis=None,
-    title=None,
-    system_prompt=None,
-):
+def saveChatData(chat_id, **kwargs):
     chat_data = {}
     raw_data = _loadFile(chat_id, "data.json")
-    if raw_data != "":
+
+    # Load the existing data
+    if raw_data:
         chat_data = json.loads(raw_data)
 
-    if text is not None:
-        chat_data["text"] = text
+    # Save all the keywords that were passed in
+    chat_data.update({key: value for key, value in kwargs.items() if value is not None})
 
-    if summary is not None:
-        chat_data["summary"] = summary
+    # Check data format
+    if "data_format" in chat_data and chat_data["data_format"] != CURRENT_DATA_VER:
+        print("WARNING! Upgrading data version. Some things may break!")
+    chat_data["data_format"] = CURRENT_DATA_VER
 
-    if analysis is not None:
-        chat_data["analysis"] = analysis
-
-    if tags is not None:
-        chat_data["tags"] = tags
-
-    if title is not None:
-        chat_data["title"] = title
-
-    if system_prompt is not None:
-        chat_data["system_prompt"] = system_prompt
-
-    chat_data["data_format"] = 2.0
-
+    # Save the file
     _saveFile(chat_id, "data.json", json.dumps(chat_data, indent=2))
 
 
@@ -91,6 +76,9 @@ def loadChatData(chat_id: int):
     raw_data = _loadFile(chat_id, "data.json")
     if raw_data != "":
         chat_data = json.loads(raw_data)
+
+    if "data_format" in chat_data and chat_data["data_format"] != CURRENT_DATA_VER:
+        print("WARNING! Loading old data version. Some things may break!")
     return chat_data
 
 

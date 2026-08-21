@@ -504,36 +504,31 @@
             }
 
             /* ---------- Streamed-token animation ---------- */
-            /* Each chunk that arrives from the SSE/stream reader is wrapped in a
-     .token-in span so it can fade/bob into place individually, rather than
-     the whole bubble re-painting flatly on every chunk. Kept short and snappy
-     so a fast stream doesn't feel like it's fighting its own animation. */
-            .token-in {
-                display: inline;
-                animation: token-fade-up-in 360ms
-                    cubic-bezier(0.34, 1.56, 0.64, 1) both;
+            /* Each chunk that arrives from the SSE/stream reader is split into one
+     .stream-letter span per character, so text fades/rises into place letter
+     by letter instead of the whole bubble re-painting flatly on every chunk.
+     This is the same fade-up-in used for chat-item title changes, just much
+     faster and with a shorter travel distance so a fast stream reads as
+     quick, smooth handwriting rather than a slow reveal. */
+            .stream-letter {
+                display: inline-block;
+                white-space: pre;
+                animation: letter-fade-up-in 140ms ease-out both;
             }
 
-            @keyframes token-fade-up-in {
-                0% {
+            @keyframes letter-fade-up-in {
+                from {
                     opacity: 0;
-                    transform: translateY(8px);
+                    transform: translateY(6px);
                 }
-                55% {
-                    opacity: 1;
-                    transform: translateY(-2px);
-                }
-                80% {
-                    transform: translateY(1px);
-                }
-                100% {
+                to {
                     opacity: 1;
                     transform: translateY(0);
                 }
             }
 
             @media (prefers-reduced-motion: reduce) {
-                .token-in {
+                .stream-letter {
                     animation: none;
                 }
             }
@@ -622,7 +617,7 @@
 
             .composer-form {
                 display: flex;
-                align-items: center;
+                align-items: flex-end;
                 gap: 8px;
             }
 
@@ -634,8 +629,12 @@
                 font-family: var(--font-ui);
                 font-size: 14px;
                 padding: 10px 16px;
-                border-radius: 999px;
+                border-radius: 18px;
                 outline: none;
+                resize: none;
+                overflow-y: auto;
+                max-height: 140px;
+                line-height: 1.4;
                 transition: border-color 0.15s ease;
             }
             .composer-input:focus {
@@ -676,6 +675,38 @@
                 cursor: not-allowed;
             }
             .send-button svg {
+                width: 16px;
+                height: 16px;
+            }
+
+            .process-button {
+                flex: 0 0 auto;
+                width: 38px;
+                height: 38px;
+                border-radius: 50%;
+                border: none;
+                background: var(--accent);
+                color: #ffffff;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition:
+                    background 0.15s ease,
+                    transform 0.1s ease;
+            }
+            .process-button:hover:not(:disabled) {
+                background: var(--accent-hover);
+            }
+            .process-button:active:not(:disabled) {
+                transform: scale(0.94);
+            }
+            .process-button:disabled {
+                background: var(--bg-card);
+                color: var(--text-muted);
+                cursor: not-allowed;
+            }
+            .process-button svg {
                 width: 16px;
                 height: 16px;
             }
@@ -777,14 +808,13 @@
                     connected to <span id="api-url-label"></span>
                 </div>
                 <form class="composer-form" id="chat-form">
-                    <input
-                        type="text"
+                    <textarea
                         id="message-input"
                         class="composer-input"
-                        placeholder="Message the assistant..."
+                        placeholder="Message the assistant... (Shift+Enter for a new line)"
                         autocomplete="off"
-                        required
-                    />
+                        rows="1"
+                    ></textarea>
                     <button
                         type="submit"
                         class="send-button"
@@ -800,6 +830,24 @@
                             stroke-linejoin="round"
                         >
                             <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" />
+                        </svg>
+                    </button>
+                    <button
+                        type="button"
+                        class="process-button"
+                        id="process-button"
+                        aria-label="Process Chat"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <circle cx="11" cy="11" r="7" />
+                            <path d="m20 20-4-4" />
                         </svg>
                     </button>
                 </form>
@@ -822,6 +870,7 @@
                     status: "status",
                     listChats: "listChats",
                     updateChat: "updateChat",
+                    processChat: "processChat",
                 },
                 // How often to poll the server for its current status.
                 statusPollIntervalMs: 3000,
@@ -838,6 +887,14 @@
                 titleLetterStaggerMs: 16,
                 titleLetterOutMs: 200,
                 titleLetterInMs: 240,
+                // Max height (px) the composer textarea is allowed to auto-grow to
+                // before it starts scrolling instead (kept in sync with the
+                // max-height set on .composer-input in CSS).
+                composerMaxHeightPx: 140,
+                // Per-letter stagger for the streamed-token fade-up-in animation.
+                // Kept much tighter than titleLetterStaggerMs so a fast stream still
+                // reads as quick, smooth handwriting rather than a slow reveal.
+                streamLetterStaggerMs: 8,
             };
 
             /**
@@ -869,6 +926,7 @@
                 chatForm: document.getElementById("chat-form"),
                 messageInput: document.getElementById("message-input"),
                 sendButton: document.getElementById("send-button"),
+                processButton: document.getElementById("process-button"),
                 endpointLabel: document.getElementById("endpoint-label"),
                 apiUrlLabel: document.getElementById("api-url-label"),
                 statusPill: document.getElementById("status-pill"),
@@ -921,17 +979,30 @@
             }
 
             /**
-             * Append one streamed chunk to a live assistant bubble as its own
-             * .token-in span, so it fades/bobs into place independently instead of
-             * the whole bubble repainting flatly on every chunk. Cheap: one small
-             * element per chunk received, not per character.
+             * Append one streamed chunk to a live assistant bubble, fading/rising
+             * each character in individually (staggered by
+             * CONFIG.streamLetterStaggerMs) rather than animating the whole chunk
+             * as one block. Newlines are appended as plain text nodes — animating
+             * them has no visual effect and wrapping them in an inline-block span
+             * can upset line-wrapping.
              */
             function appendStreamedChunk(bubbleEl, text) {
                 if (!text) return;
-                const span = document.createElement("span");
-                span.className = "token-in";
-                span.textContent = text;
-                bubbleEl.appendChild(span);
+                const frag = document.createDocumentFragment();
+                let delayMs = 0;
+                for (const ch of text) {
+                    if (ch === "\n") {
+                        frag.appendChild(document.createTextNode("\n"));
+                        continue;
+                    }
+                    const span = document.createElement("span");
+                    span.className = "stream-letter";
+                    span.style.animationDelay = `${delayMs}ms`;
+                    span.textContent = ch;
+                    frag.appendChild(span);
+                    delayMs += CONFIG.streamLetterStaggerMs;
+                }
+                bubbleEl.appendChild(frag);
             }
 
             /** Show an animated "thinking" bubble and return it so it can be removed later. */
@@ -1401,13 +1472,16 @@
             async function sendMessage(event) {
                 event.preventDefault();
 
+                // Get the user message. If it doesn't exist, continue the conversation
                 const message = dom.messageInput.value.trim();
-                if (!message) return;
+                var continueMode = !message;
 
                 const requestChatId = state.chatId;
 
-                appendMessage("user", message);
+                if (!continueMode) {appendMessage("user", message);}
+
                 dom.messageInput.value = "";
+                resizeComposerInput();
                 setFormEnabled(false);
 
                 let liveBubble = null;
@@ -1573,8 +1647,10 @@
                         }
                     }
 
+                    if (!continueMode) {
                     state.rawTranscript +=
                         "{{[INPUT]}}" + message + "{{[OUTPUT]}}" + finalText;
+                    }
 
                     if (requestChatId === state.chatId && !state.editMode) {
                         // Pick up any server-side normalization.
@@ -1626,7 +1702,38 @@
             function setFormEnabled(enabled) {
                 dom.messageInput.disabled = !enabled;
                 dom.sendButton.disabled = !enabled;
+                dom.processButton.disabled = !enabled;
                 if (enabled) dom.messageInput.focus();
+            }
+
+            /**
+             * Grow the composer textarea to fit its content (up to
+             * CONFIG.composerMaxHeightPx), then let it scroll internally beyond that.
+             * Called on input and after the field is programmatically cleared.
+             */
+            function resizeComposerInput() {
+                dom.messageInput.style.height = "auto";
+                const nextHeight = Math.min(
+                    dom.messageInput.scrollHeight,
+                    CONFIG.composerMaxHeightPx,
+                );
+                dom.messageInput.style.height = `${nextHeight}px`;
+            }
+
+            /**
+             * Enter submits the message; Shift+Enter inserts a newline (the
+             * textarea's default behavior, so we just let it through).
+             */
+            function handleComposerKeydown(event) {
+                if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    if (typeof dom.chatForm.requestSubmit === "function") {
+                        dom.chatForm.requestSubmit();
+                    } else {
+                        sendMessage(new Event("submit", { cancelable: true }));
+                    }
+                }
+                // Shift+Enter: no preventDefault, so the textarea inserts "\n" itself.
             }
 
             async function refreshChatList() {
@@ -1645,6 +1752,19 @@
                 }
             }
 
+            async function processChat() {
+                try {
+                    console.log(`Processing chat ${state.chatId}`);
+                    const data = await callBackend(
+                        CONFIG.endpoints.processChat,
+                        { chat_id: state.chatId },
+                    );
+                    refreshChatList();
+                } catch (error) {
+                    console.error(error);
+                }
+            }
+
             /**
              * ---------------------------------------------------------------------
              * Wire up events and boot the app
@@ -1653,6 +1773,9 @@
             dom.chatForm.addEventListener("submit", sendMessage);
             dom.newChatButton.addEventListener("click", startNewChat);
             dom.editModeButton.addEventListener("click", toggleEditMode);
+            dom.processButton.addEventListener("click", processChat);
+            dom.messageInput.addEventListener("keydown", handleComposerKeydown);
+            dom.messageInput.addEventListener("input", resizeComposerInput);
 
             dom.endpointLabel.textContent = `chat #${state.chatId}`;
             appendMessage(

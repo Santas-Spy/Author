@@ -42,6 +42,10 @@ class LoadChatRequest(BaseModel):
     chat_id: int
 
 
+class ProcessChatRequest(BaseModel):
+    chat_id: int
+
+
 def _packageChatData(raw_data, chat_id):
     valid_keys = [
         "text",
@@ -83,8 +87,6 @@ async def send_message(req: ChatRequest, background_tasks: BackgroundTasks):
         for item in orchestrator.sendUserMessage(chat_id, user_message):
             yield json.dumps(item) + "\n"
 
-    background_tasks.add_task(run_post_processing, chat_id)
-
     return StreamingResponse(
         iterate_in_threadpool(token_gen()),
         media_type="text/plain; charset=utf-8",
@@ -96,6 +98,12 @@ async def send_message(req: ChatRequest, background_tasks: BackgroundTasks):
 def list_chats():
     subdirs = chathandler.listChatIDs()
     return {"chatIDs": subdirs}
+
+
+@app.post("/api/processChat")
+def process_chat(req: ProcessChatRequest, background_tasks: BackgroundTasks):
+    chat_id = req.chat_id
+    background_tasks.add_task(run_post_processing, chat_id)
 
 
 @app.post("/api/loadChat")
