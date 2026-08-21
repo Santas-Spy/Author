@@ -158,6 +158,10 @@ class KoboldInstance:
         """Swap the active model on the server."""
         print(f"Loading model '{modelName}'")
 
+    def stopGeneration(self) -> None:
+        """Signal the server to stop the current generation."""
+        self._request("POST", "/api/extra/abort")
+
 
 # Singleton instance
 koboldInstance = KoboldInstance()

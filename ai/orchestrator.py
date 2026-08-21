@@ -171,5 +171,9 @@ def setStatus(status: str = "working", message: str = ""):
     state = {"status": status, "message": message}
 
 
+def stopGeneration():
+    koboldInstance.stopGeneration()
+
+
 def getStatus():
     return state

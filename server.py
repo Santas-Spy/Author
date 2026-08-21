@@ -124,6 +124,11 @@ def update_chat(req: UpdateChatRequest):
     chathandler.saveChat(chat_id, text)
 
 
+@app.post("/api/stop")
+def stop_generation():
+    orchestrator.stopGeneration()
+
+
 @app.get("/")
 async def read_index():
     return FileResponse("static/index.html")
