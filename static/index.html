@@ -894,7 +894,7 @@
                 // Per-letter stagger for the streamed-token fade-up-in animation.
                 // Kept much tighter than titleLetterStaggerMs so a fast stream still
                 // reads as quick, smooth handwriting rather than a slow reveal.
-                streamLetterStaggerMs: 8,
+                streamLetterStaggerMs: 16,
             };
 
             /**
@@ -986,24 +986,67 @@
              * them has no visual effect and wrapping them in an inline-block span
              * can upset line-wrapping.
              */
-            function appendStreamedChunk(bubbleEl, text) {
-                if (!text) return;
-                const frag = document.createDocumentFragment();
-                let delayMs = 0;
-                for (const ch of text) {
-                    if (ch === "\n") {
-                        frag.appendChild(document.createTextNode("\n"));
-                        continue;
-                    }
-                    const span = document.createElement("span");
-                    span.className = "stream-letter";
-                    span.style.animationDelay = `${delayMs}ms`;
-                    span.textContent = ch;
-                    frag.appendChild(span);
-                    delayMs += CONFIG.streamLetterStaggerMs;
-                }
-                bubbleEl.appendChild(frag);
-            }
+             let streamQueue = {bubbleEl: null, text: ""};
+             let isAnimatingStream = false;
+
+             function appendStreamedChunk(bubbleEl, text) {
+                 if (!text) return;
+
+                 //streamQueue.push({ bubbleEl, text });
+                 streamQueue.bubbleEl = bubbleEl
+                 streamQueue.text += text
+                 processStreamQueue();
+             }
+
+             function processStreamQueue() {
+                 if (isAnimatingStream || streamQueue.text.length === 0) return;
+
+                 isAnimatingStream = true;
+
+                 //const { bubbleEl, text } = streamQueue.shift();
+                 const { bubbleEl, text } = streamQueue;
+                 streamQueue = {bubbleEl: null, text: ""};
+                 const frag = document.createDocumentFragment();
+
+                 let delayMs = 0;
+                 let lastSpan = null;
+
+                 for (const ch of text) {
+                     if (ch === "\n") {
+                         frag.appendChild(document.createTextNode("\n"));
+                         continue;
+                     }
+
+                     const span = document.createElement("span");
+                     span.className = "stream-letter";
+                     span.style.animationDelay = `${delayMs}ms`;
+                     span.textContent = ch;
+
+                     frag.appendChild(span);
+                     lastSpan = span;
+
+                     var delay = CONFIG.streamLetterStaggerMs;
+                     delay /= text.length;
+                     delay = Math.max(delay, 0.5);
+                     delay = Math.min(delay, 16);
+                     delayMs += delay;
+                 }
+
+                 bubbleEl.appendChild(frag);
+
+                 // Nothing animated in this chunk.
+                 if (!lastSpan) {
+                     isAnimatingStream = false;
+                     processStreamQueue();
+                     return;
+                 }
+
+                 // The last character finishes after its delay + animation duration.
+                 lastSpan.addEventListener("animationend", () => {
+                     isAnimatingStream = false;
+                     processStreamQueue();
+                 }, { once: true });
+             }
 
             /** Show an animated "thinking" bubble and return it so it can be removed later. */
             function appendThinkingIndicator() {
@@ -1759,6 +1802,7 @@
                         CONFIG.endpoints.processChat,
                         { chat_id: state.chatId },
                     );
+                    if (data.title) updateChatTitle(requestChatId, data.title);
                     refreshChatList();
                 } catch (error) {
                     console.error(error);

@@ -63,14 +63,12 @@ def _packageChatData(raw_data, chat_id):
     return data
 
 
-def run_post_processing(chat_id):
-    chat_data = chathandler.loadChatData(chat_id)
-    if len(chat_data["text"]) > 500:
-        orchestrator.summarizeConversation(chat_id)
-        orchestrator.catagorizeConversation(chat_id)
-        orchestrator.analyzeConversation(chat_id)
-        orchestrator.generateTitle(chat_id)
-        orchestrator.setStatus("ready", "Ready")
+def run_post_processing(chat_id: int):
+    orchestrator.summarizeConversation(chat_id)
+    orchestrator.catagorizeConversation(chat_id)
+    orchestrator.analyzeConversation(chat_id)
+    orchestrator.generateTitle(chat_id)
+    orchestrator.setStatus("ready", "Ready")
 
 
 @app.on_event("startup")
@@ -103,7 +101,8 @@ def list_chats():
 @app.post("/api/processChat")
 def process_chat(req: ProcessChatRequest, background_tasks: BackgroundTasks):
     chat_id = req.chat_id
-    background_tasks.add_task(run_post_processing, chat_id)
+    run_post_processing(chat_id)
+    return chathandler.loadChatData(chat_id)
 
 
 @app.post("/api/loadChat")
