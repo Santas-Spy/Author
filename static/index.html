@@ -742,6 +742,38 @@
                 width: 16px;
                 height: 16px;
             }
+
+            .delete-all-chats-button {
+                flex: 0 0 auto;
+                background: var(--bg-card);
+                color: var(--text-secondary);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition:
+                    background 0.15s ease,
+                    transform 0.1s ease;
+                margin-top: auto;
+                margin-left: 10px;
+                margin-right: 10px;
+                margin-bottom: 10px;
+            }
+            .delete-all-chats-button:hover:not(:disabled) {
+                background: var(--danger);
+            }
+            .delete-all-chats-button:active:not(:disabled) {
+                transform: scale(0.94);
+            }
+            .delete-all-chats-button:disabled {
+                background: var(--bg-card);
+                color: var(--text-muted);
+                cursor: not-allowed;
+            }
+            .delete-all-chats-button svg {
+                width: 16px;
+                height: 16px;
+            }
         </style>
     </head>
     <body>
@@ -814,6 +846,30 @@
                 <nav class="sidebar-panel chat-list" id="chat-list">
                     <span class="sidebar-heading">Chats</span>
                     <div class="chat-item-list" id="chat-item-list"></div>
+                    <button
+                        class="delete-all-chats-button icon-button"
+                        id="delete-all-chats-button"
+                        type="button"
+                        title="Delete All Chats"
+                        aria-label="Delete All Chats"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M3 6h18" />
+                            <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+                            <path d="M5 6v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6" />
+                            <path d="M10 11v6" />
+                            <path d="M14 11v6" />
+                        </svg>
+                            <path d="M12 5v14M5 12h14" />
+                        </svg>
+                    </button>
                 </nav>
 
                 <!-- Message list / raw-log editor -->
@@ -919,6 +975,7 @@
                     updateChat: "updateChat",
                     processChat: "processChat",
                     stop: "stop",
+                    deleteAllChats: "deleteAllChats",
                 },
                 // How often to poll the server for its current status.
                 statusPollIntervalMs: 3000,
@@ -983,6 +1040,9 @@
                 statusLabel: document.getElementById("status-label"),
                 newChatButton: document.getElementById("new-chat-button"),
                 editModeButton: document.getElementById("edit-mode-button"),
+                deleteChatsButton: document.getElementById(
+                    "delete-all-chats-button",
+                ),
             };
 
             dom.apiUrlLabel.textContent = CONFIG.apiBaseUrl;
@@ -1035,67 +1095,71 @@
              * them has no visual effect and wrapping them in an inline-block span
              * can upset line-wrapping.
              */
-             let streamQueue = {bubbleEl: null, text: ""};
-             let isAnimatingStream = false;
+            let streamQueue = { bubbleEl: null, text: "" };
+            let isAnimatingStream = false;
 
-             function appendStreamedChunk(bubbleEl, text) {
-                 if (!text) return;
+            function appendStreamedChunk(bubbleEl, text) {
+                if (!text) return;
 
-                 //streamQueue.push({ bubbleEl, text });
-                 streamQueue.bubbleEl = bubbleEl
-                 streamQueue.text += text
-                 processStreamQueue();
-             }
+                //streamQueue.push({ bubbleEl, text });
+                streamQueue.bubbleEl = bubbleEl;
+                streamQueue.text += text;
+                processStreamQueue();
+            }
 
-             function processStreamQueue() {
-                 if (isAnimatingStream || streamQueue.text.length === 0) return;
+            function processStreamQueue() {
+                if (isAnimatingStream || streamQueue.text.length === 0) return;
 
-                 isAnimatingStream = true;
+                isAnimatingStream = true;
 
-                 //const { bubbleEl, text } = streamQueue.shift();
-                 const { bubbleEl, text } = streamQueue;
-                 streamQueue = {bubbleEl: null, text: ""};
-                 const frag = document.createDocumentFragment();
+                //const { bubbleEl, text } = streamQueue.shift();
+                const { bubbleEl, text } = streamQueue;
+                streamQueue = { bubbleEl: null, text: "" };
+                const frag = document.createDocumentFragment();
 
-                 let delayMs = 0;
-                 let lastSpan = null;
+                let delayMs = 0;
+                let lastSpan = null;
 
-                 for (const ch of text) {
-                     if (ch === "\n") {
-                         frag.appendChild(document.createTextNode("\n"));
-                         continue;
-                     }
+                for (const ch of text) {
+                    if (ch === "\n") {
+                        frag.appendChild(document.createTextNode("\n"));
+                        continue;
+                    }
 
-                     const span = document.createElement("span");
-                     span.className = "stream-letter";
-                     span.style.animationDelay = `${delayMs}ms`;
-                     span.textContent = ch;
+                    const span = document.createElement("span");
+                    span.className = "stream-letter";
+                    span.style.animationDelay = `${delayMs}ms`;
+                    span.textContent = ch;
 
-                     frag.appendChild(span);
-                     lastSpan = span;
+                    frag.appendChild(span);
+                    lastSpan = span;
 
-                     var delay = CONFIG.streamLetterStaggerMs;
-                     delay /= text.length;
-                     delay = Math.max(delay, 0.5);
-                     delay = Math.min(delay, 16);
-                     delayMs += delay;
-                 }
+                    var delay = CONFIG.streamLetterStaggerMs;
+                    delay /= text.length;
+                    delay = Math.max(delay, 0.5);
+                    delay = Math.min(delay, 16);
+                    delayMs += delay;
+                }
 
-                 bubbleEl.appendChild(frag);
+                bubbleEl.appendChild(frag);
 
-                 // Nothing animated in this chunk.
-                 if (!lastSpan) {
-                     isAnimatingStream = false;
-                     processStreamQueue();
-                     return;
-                 }
+                // Nothing animated in this chunk.
+                if (!lastSpan) {
+                    isAnimatingStream = false;
+                    processStreamQueue();
+                    return;
+                }
 
-                 // The last character finishes after its delay + animation duration.
-                 lastSpan.addEventListener("animationend", () => {
-                     isAnimatingStream = false;
-                     processStreamQueue();
-                 }, { once: true });
-             }
+                // The last character finishes after its delay + animation duration.
+                lastSpan.addEventListener(
+                    "animationend",
+                    () => {
+                        isAnimatingStream = false;
+                        processStreamQueue();
+                    },
+                    { once: true },
+                );
+            }
 
             /** Show an animated "thinking" bubble and return it so it can be removed later. */
             function appendThinkingIndicator() {
@@ -1570,7 +1634,9 @@
 
                 const requestChatId = state.chatId;
 
-                if (!continueMode) {appendMessage("user", message);}
+                if (!continueMode) {
+                    appendMessage("user", message);
+                }
 
                 dom.messageInput.value = "";
                 resizeComposerInput();
@@ -1740,8 +1806,11 @@
                     }
 
                     if (!continueMode) {
-                    state.rawTranscript +=
-                        "{{[INPUT]}}" + message + "{{[OUTPUT]}}" + finalText;
+                        state.rawTranscript +=
+                            "{{[INPUT]}}" +
+                            message +
+                            "{{[OUTPUT]}}" +
+                            finalText;
                     }
 
                     if (requestChatId === state.chatId && !state.editMode) {
@@ -1877,10 +1946,14 @@
                         { chat_id: state.chatId },
                     );
                     if (data.title) updateChatTitle(requestChatId, data.title);
-                    refreshChatList();
                 } catch (error) {
                     console.error(error);
                 }
+            }
+
+            async function deleteAllChats() {
+                await callBackend(CONFIG.endpoints.deleteAllChats, {});
+                refreshChatList();
             }
 
             /**
@@ -1893,6 +1966,7 @@
             dom.editModeButton.addEventListener("click", toggleEditMode);
             dom.processButton.addEventListener("click", processChat);
             dom.cancelButton.addEventListener("click", cancelGeneration);
+            dom.deleteChatsButton.addEventListener("click", deleteAllChats); // <- This should have confirmation eventually
             dom.messageInput.addEventListener("keydown", handleComposerKeydown);
             dom.messageInput.addEventListener("input", resizeComposerInput);
 

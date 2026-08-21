@@ -5,7 +5,7 @@ from json import JSONDecodeError
 import chathandler
 import config
 from ai import chatformatter
-from ai.kobold import koboldInstance
+from ai.kobold import KoboldError, koboldInstance
 
 state = {"status": "ready", "message": "Ready"}
 process_chats_flag = False
@@ -28,7 +28,7 @@ def chooseModel(message: str):
 
 
 def summarizeConversation(chat_id: int):
-    setStatus("working", "Summarizing")
+    setStatus("working", f"Summarizing chat {chat_id}")
 
     # Build the prompt
     prompt = config.readSetting("prompts.summarize_conversation")
@@ -50,7 +50,7 @@ def summarizeConversation(chat_id: int):
 
 
 def analyzeConversation(chat_id: int):
-    setStatus("working", "Analyzing")
+    setStatus("working", f"Analyzing chat {chat_id}")
     prompt = config.readSetting("prompts.analyze_conversation")
     chatText = chathandler.loadChat(chat_id)
     userFacts = chathandler.loadAnalysis()
@@ -69,12 +69,12 @@ def analyzeConversation(chat_id: int):
         print("Warning. Could not parse json from model")
 
     chathandler.saveAnalysis(result)
-    chathandler.saveChatData(chat_id, processedAnalyze=True)
+    chathandler.saveChatData(chat_id, processedAnalysis=True)
     setStatus("ready", "Ready")
 
 
 def catagorizeConversation(chat_id: int):
-    setStatus("working", "Catagorizing")
+    setStatus("working", f"Catagorizing chat {chat_id}")
     prompt = config.readSetting("prompts.catagorize_conversation")
     chatText = chathandler.loadChat(chat_id)
     text = prompt.replace("{history}", chatText)
@@ -86,7 +86,7 @@ def catagorizeConversation(chat_id: int):
 
 
 def generateTitle(chat_id: int):
-    setStatus("working", "Generating Title")
+    setStatus("working", f"Generating Title for chat {chat_id}")
     prompt = config.readSetting("prompts.title_generation")
     chatText = chathandler.loadChat(chat_id)
     text = prompt.replace("{history}", chatText)
@@ -131,7 +131,7 @@ def sendUserMessage(chat_id: int, user_message: str):
     chooseModel(user_message)
 
     # Send the message, streaming tokens as they arrive
-    setStatus("working", "Thinking")
+    setStatus("working", f"Thinking about chat {chat_id}")
     message = prompt + chatText
     streamed_response = ""
     for token in koboldInstance.generate(message):
@@ -169,7 +169,7 @@ def startProgram():
 
 def setStatus(status: str = "working", message: str = ""):
     global state
-    print("Set state: " + json.dumps(state))
+    print("Set state: " + json.dumps(state), flush=True)
     state = {"status": status, "message": message}
 
 
@@ -177,27 +177,36 @@ def processChatsInBackground():
     global process_chats_flag
     process_chats_flag = True
     chat_ids = chathandler.listChatIDs()
-    for chat_id, title in enumerate(chat_ids):
-        chat_data = chathandler.loadChatData(chat_id)
-        if not process_chats_flag:
-            return
-        if "processedSummary" not in chat_data or chat_data["processedSummary"] == False:
-            summarizeConversation(chat_id)
+    try:
+        for chat_id, title in enumerate(chat_ids):
+            chat_data = chathandler.loadChatData(chat_id)
+            if "text" not in chat_data or chat_data["text"] == "":
+                continue
 
-        if not process_chats_flag:
-            return
-        if "processedCatagories" not in chat_data or chat_data["processedCatagories"] == False:
-            catagorizeConversation(chat_id)
+            if not process_chats_flag:
+                return
+            if "processedSummary" not in chat_data or chat_data["processedSummary"] == False:
+                summarizeConversation(chat_id)
 
-        if not process_chats_flag:
-            return
-        if "processedAnalysis" not in chat_data or chat_data["processedAnalysis"] == False:
-            analyzeConversation(chat_id)
+            if not process_chats_flag:
+                return
+            if "processedCatagories" not in chat_data or chat_data["processedCatagories"] == False:
+                catagorizeConversation(chat_id)
 
-        if not process_chats_flag:
-            return
-        if "processedTitle" not in chat_data or chat_data["processedTitle"] == False:
-            generateTitle(chat_id)
+            if not process_chats_flag:
+                return
+            if "processedAnalysis" not in chat_data or chat_data["processedAnalysis"] == False:
+                analyzeConversation(chat_id)
+
+            if not process_chats_flag:
+                return
+            if "processedTitle" not in chat_data or chat_data["processedTitle"] == False:
+                generateTitle(chat_id)
+    except KoboldError:
+        print("Kobold instance was not running. Could not process chats")
+        process_chats_flag = True
+    finally:
+        process_chats_flag = True
 
 
 def cancelProcessing():

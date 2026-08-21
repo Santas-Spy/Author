@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 from pathlib import Path
 
 CURRENT_DATA_VER = 2.2
@@ -25,6 +26,15 @@ def _saveFile(chat_id, filename, text):
     filePath = f"{dir}/{filename}"
     with open(filePath, "w") as file:
         file.write(text)
+
+
+def _deleteChat(chat_id):
+    def on_error(fun, path, exc_info):
+        print(f"Error deleting {path}: {exc_info}")
+
+    dir = f"data/{chat_id}"
+    print(f"deleting {dir}")
+    shutil.rmtree(dir, onerror=on_error)
 
 
 def saveChat(chat_id, text):
@@ -130,3 +140,8 @@ def listChatIDs() -> list[dict[str, str]]:
         title = loadTitle(id)
         chat_ids.append({"id": id, "title": title})
     return chat_ids
+
+
+def deleteAllChats():
+    for entry in listChatIDs():
+        _deleteChat(entry["id"])

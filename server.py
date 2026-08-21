@@ -133,6 +133,13 @@ def load_messages(req: LoadChatRequest):
     return _packageChatData(chat_data, chat_id)
 
 
+@app.post("/api/deleteAllChats")
+def delete_all_chats():
+    orchestrator.cancelProcessing()
+    orchestrator.stopGeneration()
+    chathandler.deleteAllChats()
+
+
 @app.get("/api/status")
 def get_status():
     return orchestrator.getStatus()
