@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 
-CURRENT_DATA_VER = 2.1
+CURRENT_DATA_VER = 2.2
 
 
 def _loadFile(chat_id, filename):
@@ -28,7 +28,14 @@ def _saveFile(chat_id, filename, text):
 
 
 def saveChat(chat_id, text):
-    saveChatData(chat_id, text=text)
+    saveChatData(
+        chat_id,
+        text=text,
+        processedSummary=False,
+        processedTitle=False,
+        processedAnalysis=False,
+        processedCatagories=False,
+    )
 
 
 def saveSummary(chat_id, text):
@@ -114,7 +121,7 @@ def loadTitle(chat_id):
     return title
 
 
-def listChatIDs():
+def listChatIDs() -> list[dict[str, str]]:
     dir = "data/"
     os.makedirs(dir, exist_ok=True)
     subdirectories = [entry.name for entry in os.scandir(dir) if entry.is_dir()]

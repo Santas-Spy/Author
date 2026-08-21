@@ -8,6 +8,7 @@ from ai import chatformatter
 from ai.kobold import koboldInstance
 
 state = {"status": "ready", "message": "Ready"}
+process_chats_flag = False
 
 
 def sendMessage(text: str):
@@ -42,7 +43,7 @@ def summarizeConversation(chat_id: int):
     answer = split_response["response"]
 
     # Save the summary
-    chathandler.saveChatData(chat_id, summary=answer)
+    chathandler.saveChatData(chat_id, summary=answer, processedSummary=True)
     new_word_count = len(answer.split(" "))
     print(f"Summarized conversation of length {word_count} to {new_word_count}")
     setStatus("ready", "Ready")
@@ -68,6 +69,7 @@ def analyzeConversation(chat_id: int):
         print("Warning. Could not parse json from model")
 
     chathandler.saveAnalysis(result)
+    chathandler.saveChatData(chat_id, processedAnalyze=True)
     setStatus("ready", "Ready")
 
 
@@ -79,7 +81,7 @@ def catagorizeConversation(chat_id: int):
     response = koboldInstance.sendMessage(text)
     split_response = chatformatter.seperateThinking(response)
     answer = split_response["response"]
-    chathandler.saveChatData(chat_id, tags=answer)
+    chathandler.saveChatData(chat_id, tags=answer, processedCatagories=True)
     setStatus("ready", "Ready")
 
 
@@ -91,7 +93,7 @@ def generateTitle(chat_id: int):
     response = koboldInstance.sendMessage(text)
     split_response = chatformatter.seperateThinking(response)
     answer = split_response["response"]
-    chathandler.saveChatData(chat_id, title=answer)
+    chathandler.saveChatData(chat_id, title=answer, processedTitle=True)
     setStatus("ready", "Ready")
 
 
@@ -169,6 +171,39 @@ def setStatus(status: str = "working", message: str = ""):
     global state
     print("Set state: " + json.dumps(state))
     state = {"status": status, "message": message}
+
+
+def processChatsInBackground():
+    global process_chats_flag
+    process_chats_flag = True
+    chat_ids = chathandler.listChatIDs()
+    for chat_id, title in enumerate(chat_ids):
+        chat_data = chathandler.loadChatData(chat_id)
+        if not process_chats_flag:
+            return
+        if "processedSummary" not in chat_data or chat_data["processedSummary"] == False:
+            summarizeConversation(chat_id)
+
+        if not process_chats_flag:
+            return
+        if "processedCatagories" not in chat_data or chat_data["processedCatagories"] == False:
+            catagorizeConversation(chat_id)
+
+        if not process_chats_flag:
+            return
+        if "processedAnalysis" not in chat_data or chat_data["processedAnalysis"] == False:
+            analyzeConversation(chat_id)
+
+        if not process_chats_flag:
+            return
+        if "processedTitle" not in chat_data or chat_data["processedTitle"] == False:
+            generateTitle(chat_id)
+
+
+def cancelProcessing():
+    global process_chats_flag
+    process_chats_flag = False
+    stopGeneration()
 
 
 def stopGeneration():

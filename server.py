@@ -1,4 +1,5 @@
 import json
+import threading
 from turtle import done
 
 from fastapi import BackgroundTasks, FastAPI
@@ -71,13 +72,33 @@ def run_post_processing(chat_id: int):
     orchestrator.setStatus("ready", "Ready")
 
 
+def check_run_background_processing():
+    # Check task is not already running
+    if orchestrator.process_chats_flag:
+        print("Processing Task was already running")
+        return
+
+    # Check current app state
+    if state["status"] == "ready":
+        print("Running processing while idle")
+        orchestrator.processChatsInBackground()
+    else:
+        print("Checked processing but server was busy")
+
+    timer = threading.Timer(10.0, check_run_background_processing)
+    timer.start()
+
+
 @app.on_event("startup")
 def startup_event():
     koboldInstance.setEndpoint(config.readSetting("kobold.url"))
+    timer = threading.Timer(10.0, check_run_background_processing)
+    timer.start()
 
 
 @app.post("/api/chat")
 async def send_message(req: ChatRequest, background_tasks: BackgroundTasks):
+    orchestrator.cancelProcessing()
     chat_id = req.chat_id
     user_message = req.message
 
