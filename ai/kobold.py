@@ -124,15 +124,16 @@ class KoboldInstance:
             "prompt": prompt,
             "max_length": max_length,
             "temperature": temperature,
+            "replace_instruct_placeholders": format,
         }
         if image:
             payload["images"] = [image]
         if extra:
             payload.update(extra)
 
-        if format:
-            logging.logToFile(prompt, tag="[RAW PROMPT INPUT]", logtype="raw_text.txt")
-            prompt = chatformatter.replacePlaceholders(prompt, "qwen")
+        # if format:
+        #    logging.logToFile(prompt, tag="[RAW PROMPT INPUT]", logtype="raw_text.txt")
+        #    prompt = chatformatter.replacePlaceholders(prompt, "qwen")
 
         logging.logToFile(prompt, tag="[PROMPT INPUT]")
 
