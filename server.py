@@ -70,13 +70,18 @@ def run_post_processing(chat_id: int):
 
 def check_run_background_processing():
     # Check task is not already running
-    if orchestrator.process_chats_flag:
+    if orchestrator.process_chats_flag == "working":
         print("Processing Task was already running")
-    else:
+
+    if orchestrator.process_chats_flag == "cancel":
+        print("Processing Task was waiting to cancel")
+
+    if orchestrator.process_chats_flag == "ready":
         # Check current app state
         if state["status"] == "ready":
             print("Running processing while idle")
             orchestrator.processChatsInBackground()
+            print("Finished background processing")
         else:
             print("Checked processing but server was busy")
 

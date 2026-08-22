@@ -81,3 +81,13 @@ def replacePlaceholders(prompt: str, model: str) -> str:
     # Strip the last imend so that text can be continued
     text = text[: -len("<|im_end|>\n")]
     return text
+
+
+def cleanPlaceholders(text: str) -> str:
+    """
+    Replaces all conversation tags with invalid ones. This allows a model to read the conversation history as an input rather than multiple messages
+    """
+    text = text.replace("{{[SYSTEM]}}", "{[SYSTEM]}")
+    text = text.replace("{{[INPUT]}}", "{[INPUT]}")
+    text = text.replace("{{[OUTPUT]}}", "{[OUTPUT]}")
+    return text
