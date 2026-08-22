@@ -12,7 +12,7 @@ from starlette.concurrency import iterate_in_threadpool
 import ai.orchestrator as orchestrator
 import chathandler
 import config
-from ai.kobold import koboldInstance
+from ai.kobold import KoboldError, koboldInstance
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -98,19 +98,23 @@ def startup_event():
 
 @app.post("/api/chat")
 async def send_message(req: ChatRequest, background_tasks: BackgroundTasks):
-    orchestrator.cancelProcessing()
-    chat_id = req.chat_id
-    user_message = req.message
+    try:
+        orchestrator.cancelProcessing()
+        chat_id = req.chat_id
+        user_message = req.message
 
-    def token_gen():
-        for item in orchestrator.sendUserMessage(chat_id, user_message):
-            yield json.dumps(item) + "\n"
+        def token_gen():
+            for item in orchestrator.sendUserMessage(chat_id, user_message):
+                yield json.dumps(item) + "\n"
 
-    return StreamingResponse(
-        iterate_in_threadpool(token_gen()),
-        media_type="text/plain; charset=utf-8",
-        headers={"X-Accel-Buffering": "no"},  # stop nginx-style proxies from buffering
-    )
+        return StreamingResponse(
+            iterate_in_threadpool(token_gen()),
+            media_type="text/plain; charset=utf-8",
+            headers={"X-Accel-Buffering": "no"},  # stop nginx-style proxies from buffering
+        )
+    except KoboldError as error:
+        print(error)
+        return {"type": "error", "chat_id": req.chat_id, "message": error.args}
 
 
 @app.post("/api/listChats")
@@ -121,9 +125,13 @@ def list_chats():
 
 @app.post("/api/processChat")
 def process_chat(req: ChatActionRequest, background_tasks: BackgroundTasks):
-    chat_id = req.chat_id
-    run_post_processing(chat_id)
-    return chathandler.loadChatData(chat_id)
+    try:
+        chat_id = req.chat_id
+        run_post_processing(chat_id)
+        return chathandler.loadChatData(chat_id)
+    except KoboldError as error:
+        print(error)
+        return {"type": "error", "chat_id": req.chat_id, "message": error.args}
 
 
 @app.post("/api/loadChat")
@@ -161,7 +169,11 @@ def update_chat(req: UpdateChatRequest):
 
 @app.post("/api/stop")
 def stop_generation():
-    orchestrator.stopGeneration()
+    try:
+        orchestrator.stopGeneration()
+    except KoboldError as error:
+        print(error)
+        return {"type": "error", "message": error.args}
 
 
 @app.get("/")

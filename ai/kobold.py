@@ -4,6 +4,7 @@ from typing import Any, Dict, Iterator, Optional
 import requests
 from requests.exceptions import ConnectionError
 
+import config
 import loghandler as logging
 from ai import chatformatter
 
@@ -91,6 +92,9 @@ class KoboldInstance:
         logging.logToFile(prompt, tag="[RAW PROMPT INPUT]", logtype="raw_text.txt")
         prompt = chatformatter.lfm2_5(prompt)
         logging.logToFile(prompt, tag="[PROMPT INPUT]")
+
+        max_length = int(config.readSetting("kobold.args.max_length", max_length))
+        temperature = int(config.readSetting("kobold.args.temp", temperature))
 
         payload: Dict[str, Any] = {
             "prompt": prompt,

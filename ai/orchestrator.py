@@ -38,7 +38,7 @@ def summarizeConversation(chat_id: int):
     )  # Clean the text so model can read conversation flow
     text = prompt.replace("{history}", chat_text)
     word_count = len(chat_text.split(" "))
-    text = text.replace("{max_length}", str(word_count))
+    text = text.replace("{max_length}", "150")  # Hardcoding summary to 150 words for now
 
     # Generate a summary
     response = koboldInstance.sendMessage(text)
