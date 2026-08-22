@@ -135,6 +135,7 @@ def sendUserMessage(chat_id: int, user_message: str):
     message = prompt + chatText
     streamed_response = ""
     for token in koboldInstance.generate(message):
+        setStatus("working", f"Writing in chat {chat_id}")
         streamed_response += token
         yield {"type": "token", "chat_id": chat_id, "token": token}
         print(token, end="", flush=True)

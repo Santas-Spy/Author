@@ -76,6 +76,8 @@ def replacePlaceholders(prompt: str, model: str) -> str:
     # messages.sort(key=lambda message: 0 if message[0] == "system" else 1)
 
     # Rejoin all messages together into one big formatted string
-    return "".join(
-        f"<|im_start|>{role}\n{content}<|im_end|>\n" for role, content in messages
-    )
+    text = "".join(f"<|im_start|>{role}\n{content}<|im_end|>\n" for role, content in messages)
+
+    # Strip the last imend so that text can be continued
+    text = text[: -len("<|im_end|>\n")]
+    return text
