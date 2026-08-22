@@ -15,7 +15,8 @@ def _loadFile(chat_id, filename):
         with open(filePath, "r") as file:
             text = file.read()
     except FileNotFoundError:
-        print(f'Data file "{filename}" was not found for chatID: {chat_id}')
+        pass
+        # print(f'Data file "{filename}" was not found for chatID: {chat_id}')
 
     return text
 
@@ -28,7 +29,7 @@ def _saveFile(chat_id, filename, text):
         file.write(text)
 
 
-def _deleteChat(chat_id):
+def deleteChat(chat_id: int):
     def on_error(fun, path, exc_info):
         print(f"Error deleting {path}: {exc_info}")
 
@@ -144,4 +145,4 @@ def listChatIDs() -> list[dict[str, str]]:
 
 def deleteAllChats():
     for entry in listChatIDs():
-        _deleteChat(entry["id"])
+        deleteChat(int(entry["id"]))

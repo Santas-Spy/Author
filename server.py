@@ -39,11 +39,7 @@ class UpdateChatRequest(BaseModel):
     text: str
 
 
-class LoadChatRequest(BaseModel):
-    chat_id: int
-
-
-class ProcessChatRequest(BaseModel):
+class ChatActionRequest(BaseModel):
     chat_id: int
 
 
@@ -76,14 +72,13 @@ def check_run_background_processing():
     # Check task is not already running
     if orchestrator.process_chats_flag:
         print("Processing Task was already running")
-        return
-
-    # Check current app state
-    if state["status"] == "ready":
-        print("Running processing while idle")
-        orchestrator.processChatsInBackground()
     else:
-        print("Checked processing but server was busy")
+        # Check current app state
+        if state["status"] == "ready":
+            print("Running processing while idle")
+            orchestrator.processChatsInBackground()
+        else:
+            print("Checked processing but server was busy")
 
     timer = threading.Timer(10.0, check_run_background_processing)
     timer.start()
@@ -120,14 +115,14 @@ def list_chats():
 
 
 @app.post("/api/processChat")
-def process_chat(req: ProcessChatRequest, background_tasks: BackgroundTasks):
+def process_chat(req: ChatActionRequest, background_tasks: BackgroundTasks):
     chat_id = req.chat_id
     run_post_processing(chat_id)
     return chathandler.loadChatData(chat_id)
 
 
 @app.post("/api/loadChat")
-def load_messages(req: LoadChatRequest):
+def load_messages(req: ChatActionRequest):
     chat_id = req.chat_id
     chat_data = chathandler.loadChatData(chat_id)
     return _packageChatData(chat_data, chat_id)
@@ -138,6 +133,13 @@ def delete_all_chats():
     orchestrator.cancelProcessing()
     orchestrator.stopGeneration()
     chathandler.deleteAllChats()
+
+
+@app.post("/api/deleteChat")
+def delete_chat(req: ChatActionRequest):
+    orchestrator.cancelProcessing()
+    orchestrator.stopGeneration()
+    chathandler.deleteChat(req.chat_id)
 
 
 @app.get("/api/status")

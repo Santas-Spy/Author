@@ -170,6 +170,9 @@ def startProgram():
 
 def setStatus(status: str = "working", message: str = ""):
     global state
+    if state["status"] == status and state["message"] == message:
+        return
+
     print("Set state: " + json.dumps(state), flush=True)
     state = {"status": status, "message": message}
 
