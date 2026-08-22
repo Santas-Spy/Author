@@ -1041,6 +1041,11 @@
                 // reads as quick, smooth handwriting rather than a slow reveal.
                 streamLetterStaggerMs: 16,
                 streamChunkTimeMs: 300,
+                // Must match the duration in the `.stream-letter` / `letter-fade-up-in`
+                // CSS rule. Used to time the queue-draining timer (see
+                // processStreamQueue) instead of relying on the DOM "animationend"
+                // event, which won't fire if the element is removed mid-animation.
+                streamLetterAnimationMs: 140,
             };
 
             /**
@@ -1163,7 +1168,7 @@
                 const frag = document.createDocumentFragment();
 
                 let delayMs = 0;
-                let lastSpan = null;
+                let sawAnimatedChar = false;
 
                 for (const ch of text) {
                     if (ch === "\n") {
@@ -1177,7 +1182,7 @@
                     span.textContent = ch;
 
                     frag.appendChild(span);
-                    lastSpan = span;
+                    sawAnimatedChar = true;
 
                     var delay = CONFIG.streamChunkTimeMs;
                     delay /= text.length;
@@ -1187,21 +1192,28 @@
                 bubbleEl.appendChild(frag);
 
                 // Nothing animated in this chunk.
-                if (!lastSpan) {
+                if (!sawAnimatedChar) {
                     isAnimatingStream = false;
                     processStreamQueue();
                     return;
                 }
 
-                // The last character finishes after its delay + animation duration.
-                lastSpan.addEventListener(
-                    "animationend",
-                    () => {
-                        isAnimatingStream = false;
-                        processStreamQueue();
-                    },
-                    { once: true },
-                );
+                // Resume the queue with a timer rather than the last span's
+                // "animationend" event. If the bubble gets removed from the DOM
+                // before its animation finishes — which happens routinely here,
+                // since a message reload can wipe the message list moments after
+                // streaming completes — an in-flight CSS animation is cancelled
+                // ("animationcancel") instead of completed, so "animationend"
+                // would never fire and isAnimatingStream would stay stuck "true"
+                // forever, silently blocking every subsequent stream. A timeout
+                // fires on schedule regardless of whether the node is still
+                // attached to the document.
+                const totalDelayMs =
+                    delayMs + CONFIG.streamLetterAnimationMs;
+                setTimeout(() => {
+                    isAnimatingStream = false;
+                    processStreamQueue();
+                }, totalDelayMs);
             }
 
             /** Show an animated "thinking" bubble and return it so it can be removed later. */
@@ -1214,6 +1226,11 @@
 
             function clearMessages() {
                 dom.messageList.innerHTML = "";
+                // Whatever bubble a pending stream was targeting no longer
+                // exists — drop any queued/in-flight streaming state so it
+                // can't leak into the next message or chat.
+                streamQueue = { bubbleEl: null, text: "" };
+                isAnimatingStream = false;
             }
 
             /**
