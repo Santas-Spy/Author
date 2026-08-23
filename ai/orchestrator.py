@@ -38,7 +38,10 @@ def summarizeConversation(chat_id: int):
     )  # Clean the text so model can read conversation flow
     text = prompt.replace("{history}", chat_text)
     word_count = len(chat_text.split(" "))
-    text = text.replace("{max_length}", "150")  # Hardcoding summary to 150 words for now
+
+    text = text.replace(
+        "{max_length}", str(min(word_count / 3, 150))
+    )  # Hardcoding summary to 150 words for now
 
     # Generate a summary
     response = koboldInstance.sendMessage(text)
@@ -65,16 +68,17 @@ def analyzeConversation(chat_id: int):
     split_response = chatformatter.seperateThinking(response)
     answer = split_response["response"]
 
-    result = answer
-    try:
-        factsJson = json.loads(userFacts)
-        answerJson = json.loads(answer)
-        factsJson.extend(answerJson)
-        result = json.dumps(factsJson)
-    except JSONDecodeError:
-        print("Warning. Tried to append new user facts but could not parse json")
+    if answer.strip() != "" and answer.strip() != "[]":
+        result = answer
+        try:
+            factsJson = json.loads(userFacts)
+            answerJson = json.loads(answer)
+            factsJson.extend(answerJson)
+            result = json.dumps(factsJson)
+        except JSONDecodeError:
+            print("Warning. Tried to append new user facts but could not parse json")
 
-    chathandler.saveAnalysis(result)
+        chathandler.saveAnalysis(result)
     chathandler.saveChatData(chat_id, processedAnalysis=True)
     setStatus("ready", "Ready")
 
@@ -131,9 +135,7 @@ def sendUserMessage(chat_id: int, user_message: str):
         chathandler.saveChat(chat_id, chatText)
 
     # Fill in placeholders
-    user_profile = "[]"
-    if "analysis" in chat_data:
-        user_profile = chat_data["analysis"]
+    user_profile = chathandler.loadAnalysis()
 
     current_date = datetime.datetime.now().strftime("%c")
     prompt = prompt.replace("{user_profile}", user_profile)
@@ -228,6 +230,7 @@ def cancelProcessing():
     global process_chats_flag
     process_chats_flag = "cancel"
     stopGeneration()
+    process_chats_flag = "ready"
 
 
 def stopGeneration():
