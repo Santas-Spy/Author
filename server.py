@@ -1,6 +1,5 @@
 import json
 import threading
-from turtle import done
 
 from fastapi import BackgroundTasks, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -85,15 +84,11 @@ def check_run_background_processing():
         else:
             print("Checked processing but server was busy")
 
-    timer = threading.Timer(10.0, check_run_background_processing)
-    timer.start()
-
 
 @app.on_event("startup")
 def startup_event():
     koboldInstance.setEndpoint(config.readSetting("kobold.url"))
-    timer = threading.Timer(10.0, check_run_background_processing)
-    timer.start()
+    check_run_background_processing()
 
 
 @app.post("/api/chat")
@@ -157,6 +152,8 @@ def delete_chat(req: ChatActionRequest):
 
 @app.get("/api/status")
 def get_status():
+    # THIS IS SO BAD but it'll do for now. Use webpage's polling to schedule background processing
+    check_run_background_processing()
     return orchestrator.getStatus()
 
 
