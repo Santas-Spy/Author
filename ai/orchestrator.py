@@ -39,19 +39,20 @@ def summarizeConversation(chat_id: int):
     text = prompt.replace("{history}", chat_text)
     word_count = len(chat_text.split(" "))
 
-    text = text.replace(
-        "{max_length}", str(min(word_count / 3, 150))
-    )  # Hardcoding summary to 150 words for now
+    if word_count > 500:
+        text = text.replace(
+            "{max_length}", str(min(word_count / 3, 150))
+        )  # Hardcoding summary to 150 words for now
 
-    # Generate a summary
-    response = koboldInstance.sendMessage(text)
-    split_response = chatformatter.seperateThinking(response)
-    answer = split_response["response"]
+        # Generate a summary
+        response = koboldInstance.sendMessage(text)
+        split_response = chatformatter.seperateThinking(response)
+        answer = split_response["response"]
 
-    # Save the summary
-    chathandler.saveChatData(chat_id, summary=answer, processedSummary=True)
-    new_word_count = len(answer.split(" "))
-    print(f"Summarized conversation of length {word_count} to {new_word_count}")
+        # Save the summary
+        chathandler.saveChatData(chat_id, summary=answer, processedSummary=True)
+        new_word_count = len(answer.split(" "))
+        print(f"Summarized conversation of length {word_count} to {new_word_count}")
     setStatus("ready", "Ready")
 
 

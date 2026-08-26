@@ -5,7 +5,7 @@ from fastapi import BackgroundTasks, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from starlette.concurrency import iterate_in_threadpool
 
 import ai.orchestrator as orchestrator
@@ -35,7 +35,7 @@ class ChatRequest(BaseModel):
 
 class UpdateChatRequest(BaseModel):
     chat_id: int
-    text: str
+    model_config = ConfigDict(extra="allow")
 
 
 class ChatActionRequest(BaseModel):
@@ -79,7 +79,9 @@ def check_run_background_processing():
         # Check current app state
         if state["status"] == "ready":
             print("Running processing while idle")
-            orchestrator.processChatsInBackground()
+            thread = threading.Thread(target=orchestrator.processChatsInBackground)
+            thread.start()
+            # orchestrator.processChatsInBackground()
             print("Finished background processing")
         else:
             print("Checked processing but server was busy")
@@ -160,8 +162,8 @@ def get_status():
 @app.post("/api/updateChat")
 def update_chat(req: UpdateChatRequest):
     chat_id = req.chat_id
-    text = req.text
-    chathandler.saveChat(chat_id, text)
+    data = req.model_dump(exclude={"chat_id"})
+    chathandler.saveChatData(chat_id, **data)
 
 
 @app.post("/api/stop")
