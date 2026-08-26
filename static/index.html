@@ -464,6 +464,41 @@
                 white-space: pre-wrap;
             }
 
+            /* Editable version of .info-field-value, used inside the chat-info
+     panel so each field's value can be turned into a real form control.
+     Disabled (view mode) it's styled to look just like the old read-only
+     span; enabled (edit mode) it gets a visible background/border so it
+     reads as an editable field. */
+            .info-field-input {
+                display: block;
+                width: 100%;
+                margin: 0;
+                border: 1px solid transparent;
+                border-radius: 6px;
+                padding: 2px 4px;
+                background: transparent;
+                font-family: inherit;
+                resize: none;
+                overflow: hidden;
+                transition:
+                    background 0.15s ease,
+                    border-color 0.15s ease;
+            }
+            .info-field-input:disabled {
+                cursor: default;
+                color: var(--text-secondary);
+            }
+            .info-field-input:not(:disabled) {
+                background: var(--bg-void);
+                border-color: var(--border);
+                color: var(--text-primary);
+                cursor: text;
+            }
+            .info-field-input:not(:disabled):focus {
+                outline: none;
+                border-color: var(--accent);
+            }
+
             /* ---------- Message list ---------- */
 
             .message-list {
@@ -1221,6 +1256,10 @@
                 // mode always starts from what's actually on screen.
                 rawTranscript: "",
                 editMode: false,
+                // Last chat-info payload rendered in the right sidebar (as returned by
+                // loadChat), kept around mostly for reference — the actual source of
+                // truth for saving is whatever's currently in the info field inputs.
+                chatInfoData: {},
             };
 
             /**
@@ -1561,8 +1600,10 @@
              * Chat info panel (right sidebar)
              * ---------------------------------------------------------------------
              * Renders every field from a loadChat response (other than the transcript
-             * text itself) as a labelled field: the key as a small caption above the
-             * value, rather than the raw chat-bubble placeholder used previously.
+             * text itself) as an editable field: the key as a small caption above a
+             * <textarea> holding the value. The textarea is disabled outside of edit
+             * mode, so it reads exactly like the old read-only label, but becomes a
+             * real form control once edit mode is entered (see setChatInfoFieldsEditable).
              */
             function formatInfoLabel(key) {
                 return key
@@ -1580,8 +1621,24 @@
                 return String(value);
             }
 
+            /** Grow an info-field textarea to fit its content, like the composer input. */
+            function autoGrowInfoField(el) {
+                el.style.height = "auto";
+                el.style.height = `${el.scrollHeight}px`;
+            }
+
+            /** Enable/disable every info-field input already in the DOM without re-rendering. */
+            function setChatInfoFieldsEditable(editable) {
+                dom.infoFieldList
+                    .querySelectorAll(".info-field-input")
+                    .forEach((el) => {
+                        el.disabled = !editable;
+                    });
+            }
+
             function renderChatInfo(chatData) {
                 dom.infoFieldList.innerHTML = "";
+                state.chatInfoData = chatData;
 
                 const entries = Object.entries(chatData).filter(
                     ([key]) => !CONFIG.infoFieldsExcluded.includes(key),
@@ -1598,20 +1655,33 @@
                 for (const [key, value] of entries) {
                     const field = document.createElement("div");
                     field.className = "info-field";
-                    field.dataset.key = key;
 
                     const label = document.createElement("span");
                     label.className = "info-field-label";
                     label.textContent = formatInfoLabel(key);
 
-                    const val = document.createElement("span");
-                    val.className = "info-field-value";
-                    val.textContent = formatInfoValue(value);
+                    const val = document.createElement("textarea");
+                    val.className = "info-field-value info-field-input";
+                    val.rows = 1;
+                    val.spellcheck = false;
+                    val.dataset.infoKey = key;
+                    val.value = formatInfoValue(value);
+                    // Only editable while in edit mode — matches the disabled-by-
+                    // default state of every other control in the composer/sidebar.
+                    val.disabled = !state.editMode;
+                    val.addEventListener("input", () => autoGrowInfoField(val));
 
                     field.appendChild(label);
                     field.appendChild(val);
                     dom.infoFieldList.appendChild(field);
                 }
+
+                // Size the textareas to their content once they've been laid out.
+                requestAnimationFrame(() => {
+                    dom.infoFieldList
+                        .querySelectorAll(".info-field-input")
+                        .forEach(autoGrowInfoField);
+                });
             }
 
             /**
@@ -1786,9 +1856,11 @@
              * Edit mode (raw transcript editor)
              * ---------------------------------------------------------------------
              * Toggling in swaps the rendered bubble list for a plain textarea seeded
-             * with the raw transcript. Toggling out sends whatever's in the textarea
-             * to the updateChat endpoint, then reloads the chat so the rendered view
-             * reflects what the server actually saved.
+             * with the raw transcript, and turns every chat-info field into an
+             * editable textarea. Toggling out sends whatever's in the transcript
+             * textarea AND every chat-info field to the updateChat endpoint, then
+             * reloads the chat so the rendered view reflects what the server
+             * actually saved.
              */
             function enterEditMode() {
                 state.editMode = true;
@@ -1807,6 +1879,7 @@
 
                 setFormEnabled(false);
                 setSidebarNavigationEnabled(false);
+                setChatInfoFieldsEditable(true);
 
                 dom.editTextarea.focus();
             }
@@ -1815,11 +1888,22 @@
                 const chatId = state.chatId;
                 const editedText = dom.editTextarea.value;
 
+                // Gather every chat-info field's current value straight from its
+                // input — this is the live edited state, not state.chatInfoData
+                // (which only reflects what the server last sent us).
+                const infoFields = {};
+                dom.infoFieldList
+                    .querySelectorAll("[data-info-key]")
+                    .forEach((el) => {
+                        infoFields[el.dataset.infoKey] = el.value;
+                    });
+
                 dom.editModeButton.disabled = true;
                 try {
                     await callBackend(CONFIG.endpoints.updateChat, {
                         chat_id: chatId,
                         text: editedText,
+                        ...infoFields,
                     });
                 } catch (error) {
                     appendMessage(
@@ -1845,6 +1929,7 @@
 
                 setFormEnabled(true);
                 setSidebarNavigationEnabled(true);
+                setChatInfoFieldsEditable(false);
 
                 // Re-fetch so the rendered transcript/info panel reflect what was saved,
                 // in case the backend normalized or rejected part of the edit.
@@ -2226,6 +2311,7 @@
                     );
                     dom.editModeButton.classList.remove("editing");
                     setSidebarNavigationEnabled(true);
+                    setChatInfoFieldsEditable(false);
                 }
 
                 state.chatId = chatId;
