@@ -1203,6 +1203,7 @@
                 endpoints: {
                     chat: "chat",
                     loadChat: "loadChat",
+                    generateID: "generateID",
                     status: "status",
                     listChats: "listChats",
                     updateChat: "updateChat",
@@ -1248,7 +1249,7 @@
              * ---------------------------------------------------------------------
              */
             const state = {
-                chatId: 0,
+                chatId: null,
                 // Chat ids that finished responding while the user was looking at a
                 // different chat. Cleared the moment that chat is opened.
                 unreadChatIds: new Set(),
@@ -2039,9 +2040,15 @@
              * ---------------------------------------------------------------------
              */
             async function loadChat() {
-                const requestChatId = state.chatId;
                 const thinkingRow = appendThinkingIndicator();
+                var requestChatId = null;
                 try {
+                    if (state.chatId == null) {
+                      const data = await callBackend(CONFIG.endpoints.generateID);
+                      state.chatId = data.id;
+                    }
+                    console.log("Loading chatID: ", chatId)
+                    requestChatId = state.chatId;
                     const data = await callBackend(CONFIG.endpoints.loadChat, {
                         chat_id: requestChatId,
                     });
@@ -2079,7 +2086,9 @@
                 const message = dom.messageInput.value.trim();
                 var continueMode = !message;
 
+                loadChat(state.chatId);
                 const requestChatId = state.chatId;
+                console.log("Sending a message to chat: ", requestChatId)
 
                 if (!continueMode) {
                     appendMessage("user", message);
@@ -2323,8 +2332,9 @@
             }
 
             async function startNewChat() {
-                const nextChatId = Number(state.chatId) + 1;
-                await openChat(nextChatId);
+                const data = await callBackend(CONFIG.endpoints.generateID);
+                state.chatID = data.id;
+                await openChat(state.chatID);
                 await refreshChatList();
             }
 
@@ -2366,6 +2376,7 @@
                 }
 
                 await refreshChatList();
+                state.chatId = null;
             }
 
             /**

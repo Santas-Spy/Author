@@ -1,12 +1,12 @@
 import json
 import os
 import shutil
-from pathlib import Path
+import uuid
 
 CURRENT_DATA_VER = 2.2
 
 
-def _loadFile(chat_id, filename):
+def _loadFile(chat_id: uuid.UUID, filename: str):
     dir = f"data/{chat_id}"
     os.makedirs(dir, exist_ok=True)
     filePath = f"{dir}/{filename}"
@@ -21,7 +21,7 @@ def _loadFile(chat_id, filename):
     return text
 
 
-def _saveFile(chat_id, filename, text):
+def _saveFile(chat_id: uuid.UUID, filename: str, text: str):
     dir = f"data/{chat_id}"
     os.makedirs(dir, exist_ok=True)
     filePath = f"{dir}/{filename}"
@@ -29,7 +29,7 @@ def _saveFile(chat_id, filename, text):
         file.write(text)
 
 
-def deleteChat(chat_id: int):
+def deleteChat(chat_id: uuid.UUID):
     def on_error(fun, path, exc_info):
         print(f"Error deleting {path}: {exc_info}")
 
@@ -38,7 +38,7 @@ def deleteChat(chat_id: int):
     shutil.rmtree(dir, onerror=on_error)
 
 
-def saveChat(chat_id, text):
+def saveChat(chat_id: uuid.UUID, text: str):
     saveChatData(
         chat_id,
         text=text,
@@ -49,11 +49,11 @@ def saveChat(chat_id, text):
     )
 
 
-def saveSummary(chat_id, text):
+def saveSummary(chat_id: uuid.UUID, text):
     saveChatData(chat_id, summary=text)
 
 
-def loadChat(chat_id) -> str:
+def loadChat(chat_id: uuid.UUID) -> str:
     data = loadChatData(chat_id)
     chat_text = ""
     if "text" in data and data["text"] != None:
@@ -61,7 +61,7 @@ def loadChat(chat_id) -> str:
     return chat_text
 
 
-def loadSummary(chat_id) -> str:
+def loadSummary(chat_id: uuid.UUID) -> str:
     data = loadChatData(chat_id)
     summary = ""
     if "summary" in data:
@@ -69,7 +69,7 @@ def loadSummary(chat_id) -> str:
     return summary
 
 
-def saveChatData(chat_id, **kwargs):
+def saveChatData(chat_id: uuid.UUID, **kwargs):
     chat_data = {}
     raw_data = _loadFile(chat_id, "data.json")
 
@@ -89,7 +89,9 @@ def saveChatData(chat_id, **kwargs):
     _saveFile(chat_id, "data.json", json.dumps(chat_data, indent=2))
 
 
-def loadChatData(chat_id: int):
+def loadChatData(chat_id: uuid.UUID | None):
+    if chat_id == None:
+        chat_id = uuid.uuid4()
     chat_data = {}
     raw_data = _loadFile(chat_id, "data.json")
     if raw_data != "":
@@ -124,7 +126,7 @@ def loadAnalysis():
     return text
 
 
-def loadTitle(chat_id):
+def loadTitle(chat_id: uuid.UUID):
     data = loadChatData(chat_id)
     title = None
     if "title" in data:
@@ -132,17 +134,20 @@ def loadTitle(chat_id):
     return title
 
 
-def listChatIDs() -> list[dict[str, str]]:
+def listChatIDs() -> list[dict]:
     dir = "data/"
     os.makedirs(dir, exist_ok=True)
     subdirectories = [entry.name for entry in os.scandir(dir) if entry.is_dir()]
     chat_ids = []
     for id in subdirectories:
+        id = uuid.UUID(id)
         title = loadTitle(id)
         chat_ids.append({"id": id, "title": title})
     return chat_ids
 
 
 def deleteAllChats():
-    for entry in listChatIDs():
-        deleteChat(int(entry["id"]))
+    for index, entry in enumerate(listChatIDs()):
+        id = entry["id"]
+        print(id)
+        deleteChat(id)

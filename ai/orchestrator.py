@@ -1,5 +1,6 @@
 import datetime
 import json
+import uuid
 from json import JSONDecodeError
 
 import chathandler
@@ -27,7 +28,7 @@ def chooseModel(message: str):
     koboldInstance.loadModel(answer)
 
 
-def summarizeConversation(chat_id: int):
+def summarizeConversation(chat_id: uuid.UUID):
     setStatus("working", f"Summarizing chat {chat_id}")
 
     # Build the prompt
@@ -56,7 +57,7 @@ def summarizeConversation(chat_id: int):
     setStatus("ready", "Ready")
 
 
-def analyzeConversation(chat_id: int):
+def analyzeConversation(chat_id: uuid.UUID):
     setStatus("working", f"Analyzing chat {chat_id}")
     prompt = config.readSetting("prompts.analyze_conversation")
     chat_text = chathandler.loadChat(chat_id)
@@ -84,7 +85,7 @@ def analyzeConversation(chat_id: int):
     setStatus("ready", "Ready")
 
 
-def catagorizeConversation(chat_id: int):
+def catagorizeConversation(chat_id: uuid.UUID):
     setStatus("working", f"Catagorizing chat {chat_id}")
     prompt = config.readSetting("prompts.catagorize_conversation")
     chat_text = chathandler.loadChat(chat_id)
@@ -99,7 +100,7 @@ def catagorizeConversation(chat_id: int):
     setStatus("ready", "Ready")
 
 
-def generateTitle(chat_id: int):
+def generateTitle(chat_id: uuid.UUID):
     setStatus("working", f"Generating Title for chat {chat_id}")
     prompt = config.readSetting("prompts.title_generation")
     chat_text = chathandler.loadChat(chat_id)
@@ -114,7 +115,7 @@ def generateTitle(chat_id: int):
     setStatus("ready", "Ready")
 
 
-def sendUserMessage(chat_id: int, user_message: str):
+def sendUserMessage(chat_id: uuid.UUID, user_message: str):
     chat_data = chathandler.loadChatData(chat_id)
 
     # Build the prompt
@@ -152,7 +153,7 @@ def sendUserMessage(chat_id: int, user_message: str):
     for token in koboldInstance.generate(message):
         setStatus("working", f"Writing in chat {chat_id}")
         streamed_response += token
-        yield {"type": "token", "chat_id": chat_id, "token": token}
+        yield {"type": "token", "chat_id": str(chat_id), "token": token}
         print(token, end="", flush=True)
     print()
     split_response = chatformatter.seperateThinking(streamed_response)
@@ -160,27 +161,7 @@ def sendUserMessage(chat_id: int, user_message: str):
     chathandler.saveChat(chat_id, chatText)
     setStatus("ready", "Ready")
 
-    yield {"type": "complete", "chat_id": chat_id, "text": chatText}
-
-
-def startProgram():
-    running = True
-    chat_id = 2
-    chatText = ""
-    koboldInstance.setEndpoint(config.readSetting("kobold.url"))
-    while running:
-        user_message = input("> ")
-        if user_message == "new":
-            chat_id = chat_id + 1
-            print("New ID: " + str(chat_id))
-        else:
-            sendUserMessage(chat_id, user_message)
-            chat_data = chathandler.loadChatData(chat_id)
-            if len(chat_data["text"]) > 500:
-                summarizeConversation(chat_id)
-                catagorizeConversation(chat_id)
-                analyzeConversation(chat_id)
-                generateTitle(chat_id)
+    yield {"type": "complete", "chat_id": str(chat_id), "text": chatText}
 
 
 def setStatus(status: str = "working", message: str = ""):
@@ -197,7 +178,9 @@ def processChatsInBackground():
     process_chats_flag = "working"
     chat_ids = chathandler.listChatIDs()
     try:
-        for chat_id, title in enumerate(chat_ids):
+        for index, chatData in enumerate(chat_ids):
+            chat_id = chatData["id"]
+            print(chat_id)
             chat_data = chathandler.loadChatData(chat_id)
             if "text" not in chat_data or chat_data["text"] == "":
                 continue

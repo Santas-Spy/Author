@@ -1,5 +1,6 @@
 import json
 import threading
+import uuid
 
 from fastapi import BackgroundTasks, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,17 +30,17 @@ app.add_middleware(
 
 
 class ChatRequest(BaseModel):
-    chat_id: int
+    chat_id: str
     message: str
 
 
 class UpdateChatRequest(BaseModel):
-    chat_id: int
+    chat_id: str
     model_config = ConfigDict(extra="allow")
 
 
 class ChatActionRequest(BaseModel):
-    chat_id: int
+    chat_id: str | None = None
 
 
 def _packageChatData(raw_data, chat_id):
@@ -59,7 +60,7 @@ def _packageChatData(raw_data, chat_id):
     return data
 
 
-def run_post_processing(chat_id: int):
+def run_post_processing(chat_id: uuid.UUID):
     orchestrator.summarizeConversation(chat_id)
     orchestrator.catagorizeConversation(chat_id)
     orchestrator.analyzeConversation(chat_id)
@@ -97,7 +98,7 @@ def startup_event():
 async def send_message(req: ChatRequest, background_tasks: BackgroundTasks):
     try:
         orchestrator.cancelProcessing()
-        chat_id = req.chat_id
+        chat_id = uuid.UUID(req.chat_id)
         user_message = req.message
 
         def token_gen():
@@ -123,7 +124,7 @@ def list_chats():
 @app.post("/api/processChat")
 def process_chat(req: ChatActionRequest, background_tasks: BackgroundTasks):
     try:
-        chat_id = req.chat_id
+        chat_id = uuid.UUID(req.chat_id)
         run_post_processing(chat_id)
         return chathandler.loadChatData(chat_id)
     except KoboldError as error:
@@ -133,7 +134,9 @@ def process_chat(req: ChatActionRequest, background_tasks: BackgroundTasks):
 
 @app.post("/api/loadChat")
 def load_messages(req: ChatActionRequest):
-    chat_id = req.chat_id
+    chat_id = None
+    if req.chat_id is not None:
+        chat_id = uuid.UUID(req.chat_id)
     chat_data = chathandler.loadChatData(chat_id)
     return _packageChatData(chat_data, chat_id)
 
@@ -147,9 +150,10 @@ def delete_all_chats():
 
 @app.post("/api/deleteChat")
 def delete_chat(req: ChatActionRequest):
+    chat_id = uuid.UUID(req.chat_id)
     orchestrator.cancelProcessing()
     orchestrator.stopGeneration()
-    chathandler.deleteChat(req.chat_id)
+    chathandler.deleteChat(chat_id)
 
 
 @app.get("/api/status")
@@ -161,7 +165,7 @@ def get_status():
 
 @app.post("/api/updateChat")
 def update_chat(req: UpdateChatRequest):
-    chat_id = req.chat_id
+    chat_id = uuid.UUID(req.chat_id)
     data = req.model_dump(exclude={"chat_id"})
     chathandler.saveChatData(chat_id, **data)
 
@@ -173,6 +177,12 @@ def stop_generation():
     except KoboldError as error:
         print(error)
         return {"type": "error", "message": error.args}
+
+
+@app.post("/api/generateID")
+def generate_ID():
+    print("Creating ID")
+    return {"id": uuid.uuid4()}
 
 
 @app.get("/")
