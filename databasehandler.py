@@ -1,11 +1,14 @@
 import json
+import os
 import sqlite3
 from uuid import UUID, uuid4
 
 
 class DatabaseHandler:
     def __init__(self, database_name="appdata.db"):
-        self.database_name = database_name
+        dir = "data/"
+        os.makedirs(dir, exist_ok=True)
+        self.database_name = f"{dir}/{database_name}"
         self.create_tables()
 
     def connect(self):
