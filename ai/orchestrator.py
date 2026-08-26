@@ -3,8 +3,8 @@ import json
 import uuid
 from json import JSONDecodeError
 
-import chathandler
 import config
+import databasehandler
 from ai import chatformatter
 from ai.kobold import KoboldError, koboldInstance
 
@@ -28,12 +28,13 @@ def chooseModel(message: str):
     koboldInstance.loadModel(answer)
 
 
-def summarizeConversation(chat_id: uuid.UUID):
+def summarizeConversation(chat_id: str):
+    db = databasehandler.DatabaseHandler()
     setStatus("working", f"Summarizing chat {chat_id}")
 
     # Build the prompt
     prompt = config.readSetting("prompts.summarize_conversation")
-    chat_text = chathandler.loadChat(chat_id)
+    chat_text = db.load_conversation(chat_id)["content"]
     chat_text = chatformatter.cleanPlaceholders(
         chat_text
     )  # Clean the text so model can read conversation flow
@@ -51,16 +52,17 @@ def summarizeConversation(chat_id: uuid.UUID):
         answer = split_response["response"]
 
         # Save the summary
-        chathandler.saveChatData(chat_id, summary=answer, processedSummary=True)
+        db.update_conversation(chat_id, {"summary": answer, "processedSummary": True})
         new_word_count = len(answer.split(" "))
         print(f"Summarized conversation of length {word_count} to {new_word_count}")
     setStatus("ready", "Ready")
 
 
-def analyzeConversation(chat_id: uuid.UUID):
+def analyzeConversation(chat_id: str):
+    return
     setStatus("working", f"Analyzing chat {chat_id}")
     prompt = config.readSetting("prompts.analyze_conversation")
-    chat_text = chathandler.loadChat(chat_id)
+    chat_text = DatabaseHandler.load_conversation(chat_id)["content"]
     chat_text = chatformatter.cleanPlaceholders(
         chat_text
     )  # Clean the text so model can read conversation flow
@@ -85,10 +87,11 @@ def analyzeConversation(chat_id: uuid.UUID):
     setStatus("ready", "Ready")
 
 
-def catagorizeConversation(chat_id: uuid.UUID):
+def catagorizeConversation(chat_id: str):
+    db = databasehandler.DatabaseHandler()
     setStatus("working", f"Catagorizing chat {chat_id}")
     prompt = config.readSetting("prompts.catagorize_conversation")
-    chat_text = chathandler.loadChat(chat_id)
+    chat_text = db.load_conversation(chat_id)["content"]
     chat_text = chatformatter.cleanPlaceholders(
         chat_text
     )  # Clean the text so model can read conversation flow
@@ -96,14 +99,15 @@ def catagorizeConversation(chat_id: uuid.UUID):
     response = koboldInstance.sendMessage(text)
     split_response = chatformatter.seperateThinking(response)
     answer = split_response["response"]
-    chathandler.saveChatData(chat_id, tags=answer, processedCatagories=True)
+    db.update_conversation(chat_id, {"tags": answer, "processedCatagories": True})
     setStatus("ready", "Ready")
 
 
-def generateTitle(chat_id: uuid.UUID):
+def generateTitle(chat_id: str):
+    db = databasehandler.DatabaseHandler()
     setStatus("working", f"Generating Title for chat {chat_id}")
     prompt = config.readSetting("prompts.title_generation")
-    chat_text = chathandler.loadChat(chat_id)
+    chat_text = db.load_conversation(chat_id)["content"]
     chat_text = chatformatter.cleanPlaceholders(
         chat_text
     )  # Clean the text so model can read conversation flow
@@ -111,12 +115,13 @@ def generateTitle(chat_id: uuid.UUID):
     response = koboldInstance.sendMessage(text)
     split_response = chatformatter.seperateThinking(response)
     answer = split_response["response"]
-    chathandler.saveChatData(chat_id, title=answer, processedTitle=True)
+    db.update_conversation(chat_id, {"title": answer, "processedTitle": True})
     setStatus("ready", "Ready")
 
 
-def sendUserMessage(chat_id: uuid.UUID, user_message: str):
-    chat_data = chathandler.loadChatData(chat_id)
+def sendUserMessage(chat_id: str, user_message: str):
+    db = databasehandler.DatabaseHandler()
+    chat_data = db.load_conversation(chat_id)
 
     # Build the prompt
     prompt = config.readSetting("prompts.system")
@@ -124,7 +129,7 @@ def sendUserMessage(chat_id: uuid.UUID, user_message: str):
         prompt = chat_data["system_prompt"]
         if prompt is None:
             prompt = ""
-    chathandler.saveChatData(chat_id, system_prompt=prompt)
+    db.update_conversation(chat_id, {"system_prompt": prompt})
 
     # Build the conversation history
     chatText = ""
@@ -134,10 +139,10 @@ def sendUserMessage(chat_id: uuid.UUID, user_message: str):
     # Allow continuations
     if user_message != None and user_message != "":
         chatText = chatText + "{{[INPUT]}}" + user_message + "{{[OUTPUT]}}"
-        chathandler.saveChat(chat_id, chatText)
+        db.update_conversation(chat_id, {"content": chatText})
 
     # Fill in placeholders
-    user_profile = chathandler.loadAnalysis()
+    user_profile = "{}"
 
     current_date = datetime.datetime.now().strftime("%c")
     prompt = prompt.replace("{user_profile}", user_profile)
@@ -158,7 +163,7 @@ def sendUserMessage(chat_id: uuid.UUID, user_message: str):
     print()
     split_response = chatformatter.seperateThinking(streamed_response)
     chatText = chatText + split_response["response"]
-    chathandler.saveChat(chat_id, chatText)
+    db.update_conversation(chat_id, {"content": chatText})
     setStatus("ready", "Ready")
 
     yield {"type": "complete", "chat_id": str(chat_id), "text": chatText}
@@ -174,36 +179,33 @@ def setStatus(status: str = "working", message: str = ""):
 
 
 def processChatsInBackground():
+    db = databasehandler.DatabaseHandler()
     global process_chats_flag
     process_chats_flag = "working"
-    chat_ids = chathandler.listChatIDs()
+    chat_ids = db.list_chat_ids()
     try:
-        for index, chatData in enumerate(chat_ids):
-            chat_id = chatData["id"]
-            print(chat_id)
-            chat_data = chathandler.loadChatData(chat_id)
-            if "text" not in chat_data or chat_data["text"] == "":
-                continue
+        for id in chat_ids:
+            flags = db.check_conversation_status(id)
 
             if process_chats_flag == "cancel":
                 return
-            if "processedSummary" not in chat_data or chat_data["processedSummary"] == False:
-                summarizeConversation(chat_id)
+            if flags["processedSummary"]:
+                summarizeConversation(id)
 
             if process_chats_flag == "cancel":
                 return
-            if "processedCatagories" not in chat_data or chat_data["processedCatagories"] == False:
-                catagorizeConversation(chat_id)
+            if flags["processedCatagories"]:
+                catagorizeConversation(id)
 
             if process_chats_flag == "cancel":
                 return
-            if "processedAnalysis" not in chat_data or chat_data["processedAnalysis"] == False:
-                analyzeConversation(chat_id)
+            if flags["processedAnalysis"]:
+                analyzeConversation(id)
 
             if process_chats_flag == "cancel":
                 return
-            if "processedTitle" not in chat_data or chat_data["processedTitle"] == False:
-                generateTitle(chat_id)
+            if flags["processedTitle"]:
+                generateTitle(id)
     except KoboldError:
         print("Kobold instance was not running. Could not process chats")
 

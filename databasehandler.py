@@ -76,32 +76,111 @@ class DatabaseHandler:
                 (conversation_id, tag_id),
             )
 
-    def update_conversation(self, conversation_id: str, data):
+
+def update_conversation(self, conversation_id: str, data):
+    allowed_fields = {
+        "title",
+        "content",
+        "data_format",
+        "system_prompt",
+        "summary",
+        "processedSummary",
+        "processedTitle",
+        "processedAnalysis",
+        "processedTags",
+    }
+
+    # Handle conversation fields
+    fields = []
+    values = []
+
+    for field in allowed_fields:
+        if field in data:
+            fields.append(f"{field} = ?")
+            values.append(data[field])
+
+    if fields:
+        values.append(conversation_id)
+
         with self.connect() as connection:
             cursor = connection.cursor()
 
-            if "title" in data:
+            cursor.execute(
+                f"""
+                UPDATE conversations
+                SET {", ".join(fields)}
+                WHERE id = ?
+                """,
+                values,
+            )
+
+    # Handle tags separately because they belong in conversation_tags
+    if "tags" in data:
+        tags = data["tags"]
+
+        # Support either a JSON string or a Python list
+        if isinstance(tags, str):
+            tags = json.loads(tags)
+
+        with self.connect() as connection:
+            cursor = connection.cursor()
+
+            # Remove existing tags
+            cursor.execute(
+                """
+                DELETE FROM conversation_tags
+                WHERE conversation_id = ?
+                """,
+                (conversation_id,),
+            )
+
+            # Add new tags
+            for tag in tags:
                 cursor.execute(
-                    """
-                    UPDATE conversations
-                    SET title = ?, processedTitle = ?
-                    WHERE id = ?
-                    """,
-                    (data["title"], True, str(id)),
+                    "INSERT OR IGNORE INTO tags (name) VALUES (?)",
+                    (tag,),
                 )
 
-            if "summary" in data:
                 cursor.execute(
-                    """
-                    UPDATE conversations
-                    SET summary = ?, processedSummary = ?
-                    WHERE id = ?
-                    """,
-                    (data["summary"], True, str(id)),
+                    "SELECT id FROM tags WHERE name = ?",
+                    (tag,),
                 )
 
-            if "tags" in data:
-                # Get a list of tags
-                tags = json.loads(data["tags"])
-                for tag in tags:
-                    self.add_tag_to_conversation(conversation_id, tag)
+                tag_id = cursor.fetchone()[0]
+
+                cursor.execute(
+                    """
+                    INSERT OR IGNORE INTO conversation_tags
+                    (conversation_id, tag_id)
+                    VALUES (?, ?)
+                    """,
+                    (conversation_id, tag_id),
+                )
+
+    def load_conversation(self, conversation_id: str):
+        with self.connect() as connection:
+            cursor = connection.cursor()
+
+            cursor.execute("SELECT * FROM conversations WHERE id = (?)", (conversation_id,))
+            conversation = cursor.fetchone()
+            return conversation
+
+    def check_conversation_status(self, conversation_id: str):
+        with self.connect() as connection:
+            cursor = connection.cursor()
+
+            cursor.execute(
+                "SELECT processedSummary, processedTitle, processedAnalysis, processedTags FROM conversations WHERE id = (?)",
+                (conversation_id,),
+            )
+
+            flags = cursor.fetchone()[0]
+            return flags
+
+    def list_chat_ids(self):
+        with self.connect() as connection:
+            cursor = connection.cursor()
+
+            cursor.execute("SELECT id FROM conversations")
+            ids = cursor.fetchall()
+            return ids
