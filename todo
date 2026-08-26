@@ -11,3 +11,5 @@
         - The model can ask to list memories if it might be relevant
         - The model can see the descriptions and ID's of the memories
         - The model can choose to read the memory based on its description and if its relevant
+
+* Move to SQLite DB

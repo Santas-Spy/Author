@@ -3,7 +3,7 @@ import os
 import shutil
 import uuid
 
-CURRENT_DATA_VER = 2.2
+CURRENT_DATA_VER = 2.3
 
 
 def _loadFile(chat_id: uuid.UUID, filename: str):
@@ -27,6 +27,46 @@ def _saveFile(chat_id: uuid.UUID, filename: str, text: str):
     filePath = f"{dir}/{filename}"
     with open(filePath, "w") as file:
         file.write(text)
+
+
+def _loadTags() -> list[str]:
+    dir = "data/"
+    filename = "conversation_tags.json"
+    os.makedirs(dir, exist_ok=True)
+    filePath = f"{dir}/{filename}"
+    text = "[]"
+    tags = []
+    try:
+        with open(filePath, "r") as file:
+            text = file.read()
+            tags = json.loads(text)
+    except FileNotFoundError:
+        print(f"Data file {filename} was not found")
+
+    return tags
+
+
+def _saveTags(tags: list[str]):
+    dir = "data/"
+    filename = "converstation_tags.json"
+    os.makedirs(dir, exist_ok=True)
+    filePath = f"{dir}/{filename}"
+    with open(filePath, "w") as file:
+        file.write(json.dumps(tags))
+
+
+def _extractTags(tags: str):
+    existing_tags = _loadTags()
+    new_tags = json.loads(tags)
+    toAdd = []
+    for tag in new_tags:
+        if tag not in existing_tags:
+            toAdd.append(tag)
+
+    for tag in toAdd:
+        existing_tags.append(tag)
+
+    _saveTags(existing_tags)
 
 
 def deleteChat(chat_id: uuid.UUID):
@@ -79,6 +119,11 @@ def saveChatData(chat_id: uuid.UUID, **kwargs):
 
     # Save all the keywords that were passed in
     chat_data.update({key: value for key, value in kwargs.items() if value is not None})
+
+    # If kwargs contains the key 'tags' run _extractTags(val)
+    print(kwargs)
+    if "tags" in kwargs:
+        _extractTags(chat_data["tags"])
 
     # Check data format
     if "data_format" in chat_data and chat_data["data_format"] != CURRENT_DATA_VER:
