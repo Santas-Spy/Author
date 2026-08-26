@@ -1,6 +1,5 @@
 import json
 import threading
-import uuid
 
 from fastapi import BackgroundTasks, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,8 +9,8 @@ from pydantic import BaseModel, ConfigDict
 from starlette.concurrency import iterate_in_threadpool
 
 import ai.orchestrator as orchestrator
-import chathandler
 import config
+import databasehandler
 from ai.kobold import KoboldError, koboldInstance
 
 app = FastAPI()
@@ -40,7 +39,7 @@ class UpdateChatRequest(BaseModel):
 
 
 class ChatActionRequest(BaseModel):
-    chat_id: str | None = None
+    chat_id: str
 
 
 def _packageChatData(raw_data, chat_id):
@@ -60,7 +59,7 @@ def _packageChatData(raw_data, chat_id):
     return data
 
 
-def run_post_processing(chat_id: uuid.UUID):
+def run_post_processing(chat_id: str):
     orchestrator.summarizeConversation(chat_id)
     orchestrator.catagorizeConversation(chat_id)
     orchestrator.analyzeConversation(chat_id)
@@ -98,7 +97,7 @@ def startup_event():
 async def send_message(req: ChatRequest, background_tasks: BackgroundTasks):
     try:
         orchestrator.cancelProcessing()
-        chat_id = uuid.UUID(req.chat_id)
+        chat_id = req.chat_id
         user_message = req.message
 
         def token_gen():
@@ -117,16 +116,17 @@ async def send_message(req: ChatRequest, background_tasks: BackgroundTasks):
 
 @app.post("/api/listChats")
 def list_chats():
-    subdirs = chathandler.listChatIDs()
-    return {"chatIDs": subdirs}
+    db = databasehandler.DatabaseHandler()
+    return {"chatIDs": db.list_chat_ids()}
 
 
 @app.post("/api/processChat")
 def process_chat(req: ChatActionRequest, background_tasks: BackgroundTasks):
     try:
-        chat_id = uuid.UUID(req.chat_id)
+        db = databasehandler.DatabaseHandler()
+        chat_id = req.chat_id
         run_post_processing(chat_id)
-        return chathandler.loadChatData(chat_id)
+        return db.load_conversation(chat_id)
     except KoboldError as error:
         print(error)
         return {"type": "error", "chat_id": req.chat_id, "message": error.args}
@@ -134,26 +134,30 @@ def process_chat(req: ChatActionRequest, background_tasks: BackgroundTasks):
 
 @app.post("/api/loadChat")
 def load_messages(req: ChatActionRequest):
-    chat_id = None
-    if req.chat_id is not None:
-        chat_id = uuid.UUID(req.chat_id)
-    chat_data = chathandler.loadChatData(chat_id)
+    chat_id = req.chat_id
+    if chat_id is None:
+        return
+
+    db = databasehandler.DatabaseHandler()
+    chat_data = db.load_conversation(chat_id)
     return _packageChatData(chat_data, chat_id)
 
 
 @app.post("/api/deleteAllChats")
 def delete_all_chats():
+    db = databasehandler.DatabaseHandler()
     orchestrator.cancelProcessing()
     orchestrator.stopGeneration()
-    chathandler.deleteAllChats()
+    db.delete_all_chats()
 
 
 @app.post("/api/deleteChat")
 def delete_chat(req: ChatActionRequest):
-    chat_id = uuid.UUID(req.chat_id)
+    db = databasehandler.DatabaseHandler()
+    chat_id = req.chat_id
     orchestrator.cancelProcessing()
     orchestrator.stopGeneration()
-    chathandler.deleteChat(chat_id)
+    db.delete_chat(chat_id)
 
 
 @app.get("/api/status")
@@ -165,9 +169,10 @@ def get_status():
 
 @app.post("/api/updateChat")
 def update_chat(req: UpdateChatRequest):
-    chat_id = uuid.UUID(req.chat_id)
+    db = databasehandler.DatabaseHandler()
+    chat_id = req.chat_id
     data = req.model_dump(exclude={"chat_id"})
-    chathandler.saveChatData(chat_id, **data)
+    db.update_conversation(chat_id, data)
 
 
 @app.post("/api/stop")
@@ -182,7 +187,9 @@ def stop_generation():
 @app.post("/api/generateID")
 def generate_ID():
     print("Creating ID")
-    return {"id": uuid.uuid4()}
+    db = databasehandler.DatabaseHandler()
+    new_id = db.create_conversation()
+    return {"id": new_id}
 
 
 @app.get("/")

@@ -1,6 +1,5 @@
 import datetime
 import json
-import uuid
 from json import JSONDecodeError
 
 import config
@@ -182,29 +181,31 @@ def processChatsInBackground():
     db = databasehandler.DatabaseHandler()
     global process_chats_flag
     process_chats_flag = "working"
-    chat_ids = db.list_chat_ids()
+    chat_info = db.list_chat_ids()
     try:
-        for id in chat_ids:
+        for data in chat_info:
+            id = data["id"]
             flags = db.check_conversation_status(id)
+            print(flags)
 
             if process_chats_flag == "cancel":
                 return
-            if flags["processedSummary"]:
+            if flags["processedSummary"] == 0:
                 summarizeConversation(id)
 
             if process_chats_flag == "cancel":
                 return
-            if flags["processedCatagories"]:
+            if flags["processedTags"] == 0:
                 catagorizeConversation(id)
 
             if process_chats_flag == "cancel":
                 return
-            if flags["processedAnalysis"]:
+            if flags["processedAnalysis"] == 0:
                 analyzeConversation(id)
 
             if process_chats_flag == "cancel":
                 return
-            if flags["processedTitle"]:
+            if flags["processedTitle"] == 0:
                 generateTitle(id)
     except KoboldError:
         print("Kobold instance was not running. Could not process chats")

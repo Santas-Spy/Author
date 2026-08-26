@@ -1587,10 +1587,6 @@
                 clearMessages();
                 const turns = parseTranscript(rawText);
                 if (turns.length === 0) {
-                    appendMessage(
-                        "assistant",
-                        "No messages yet — say hello to get started.",
-                    );
                     return;
                 }
                 turns.forEach(({ role, text }) => appendMessage(role, text));
@@ -2041,14 +2037,14 @@
              */
             async function loadChat() {
                 const thinkingRow = appendThinkingIndicator();
-                var requestChatId = null;
+                const requestChatId = state.chatId;
                 try {
-                    if (state.chatId == null) {
-                      const data = await callBackend(CONFIG.endpoints.generateID);
-                      state.chatId = data.id;
+                    if (requestChatId == null) {
+                      console.log("Tried to load chat with no ID set");
+                      thinkingRow.remove();
+                      return;
                     }
-                    console.log("Loading chatID: ", chatId)
-                    requestChatId = state.chatId;
+                    console.log("Loading chatID: ", requestChatId)
                     const data = await callBackend(CONFIG.endpoints.loadChat, {
                         chat_id: requestChatId,
                     });
@@ -2086,7 +2082,9 @@
                 const message = dom.messageInput.value.trim();
                 var continueMode = !message;
 
-                loadChat(state.chatId);
+                if (state.chatId == null) {
+                  await startNewChat();
+                }
                 const requestChatId = state.chatId;
                 console.log("Sending a message to chat: ", requestChatId)
 
@@ -2333,8 +2331,8 @@
 
             async function startNewChat() {
                 const data = await callBackend(CONFIG.endpoints.generateID);
-                state.chatID = data.id;
-                await openChat(state.chatID);
+                state.chatId = data.id;
+                await openChat(state.chatId);
                 await refreshChatList();
             }
 
@@ -2429,10 +2427,7 @@
 
             async function refreshChatList() {
                 try {
-                    const data = await callBackend(
-                        CONFIG.endpoints.listChats,
-                        {},
-                    );
+                    const data = await callBackend(CONFIG.endpoints.listChats);
                     renderChatList(data.chatIDs ?? []);
                 } catch (error) {
                     dom.chatItemList.innerHTML = "";
