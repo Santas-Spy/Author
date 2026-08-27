@@ -51,9 +51,10 @@ def summarizeConversation(chat_id: str):
         answer = split_response["response"]
 
         # Save the summary
-        db.update_conversation(chat_id, {"summary": answer, "processedSummary": True})
+        db.update_conversation(chat_id, {"summary": answer})
         new_word_count = len(answer.split(" "))
         print(f"Summarized conversation of length {word_count} to {new_word_count}")
+    db.update_conversation(chat_id, {"processedSummary": True})
     setStatus("ready", "Ready")
 
 
@@ -118,7 +119,7 @@ def catagorizeConversation(chat_id: str):
     if tags is None:
         tags = [answer] if answer else "[]"
 
-    db.update_conversation(chat_id, {"tags": tags, "processedCatagories": True})
+    db.update_conversation(chat_id, {"tags": tags, "processedTags": True})
     setStatus("ready", "Ready")
 
 
@@ -205,7 +206,6 @@ def processChatsInBackground():
         for data in chat_info:
             id = data["id"]
             flags = db.check_conversation_status(id)
-            print(flags)
 
             if process_chats_flag == "cancel":
                 return

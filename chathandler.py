@@ -121,7 +121,6 @@ def saveChatData(chat_id: uuid.UUID, **kwargs):
     chat_data.update({key: value for key, value in kwargs.items() if value is not None})
 
     # If kwargs contains the key 'tags' run _extractTags(val)
-    print(kwargs)
     if "tags" in kwargs:
         _extractTags(chat_data["tags"])
 
@@ -194,5 +193,4 @@ def listChatIDs() -> list[dict]:
 def deleteAllChats():
     for index, entry in enumerate(listChatIDs()):
         id = entry["id"]
-        print(id)
         deleteChat(id)

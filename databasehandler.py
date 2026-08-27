@@ -98,22 +98,15 @@ class DatabaseHandler:
         fields = []
         values = []
 
-        for field in allowed_fields:
-            if field in data:
+        for field in data:
+            if field in allowed_fields:
                 fields.append(f"{field} = ?")
                 values.append(data[field])
+            else:
+                print(f"WARNING: Attempting to set field {field} but database does not allow it")
 
         if fields:
             values.append(conversation_id)
-            print("Saving Chat Data")
-            print(fields)
-            print(values)
-            print(f"""
-            UPDATE conversations
-            SET {", ".join(fields)}
-            WHERE id = ?
-            """)
-
             with self.connect() as connection:
                 cursor = connection.cursor()
 
@@ -131,7 +124,6 @@ class DatabaseHandler:
             tags = data["tags"]
 
             # Support either a JSON string or a Python list
-            print(tags, flush=True)
             if isinstance(tags, str):
                 tags = json.loads(tags)
 
@@ -179,7 +171,6 @@ class DatabaseHandler:
             return conversation
 
     def check_conversation_status(self, conversation_id: str):
-        print(conversation_id)
         with self.connect() as connection:
             cursor = connection.cursor()
 
