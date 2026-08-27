@@ -1,4 +1,6 @@
 import json
+import logging
+import sys
 import threading
 
 from fastapi import BackgroundTasks, FastAPI
@@ -15,7 +17,13 @@ from ai.kobold import KoboldError, koboldInstance
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
+# Configure once at module level
+logging.basicConfig(
+    level=logging.WARNING,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    stream=sys.stdout,  # or sys.stderr
+)
+logger = logging.getLogger(__name__)
 state = {"status": "ready", "message": "Ready"}
 
 
@@ -44,7 +52,7 @@ class ChatActionRequest(BaseModel):
 
 def _packageChatData(raw_data, chat_id):
     valid_keys = [
-        "text",
+        "content",
         "summary",
         "tags",
         "title",
@@ -70,21 +78,21 @@ def run_post_processing(chat_id: str):
 def check_run_background_processing():
     # Check task is not already running
     if orchestrator.process_chats_flag == "working":
-        print("Processing Task was already running")
+        logger.info("Processing Task was already running")
 
     if orchestrator.process_chats_flag == "cancel":
-        print("Processing Task was waiting to cancel")
+        logger.info("Processing Task was waiting to cancel")
 
     if orchestrator.process_chats_flag == "ready":
         # Check current app state
         if state["status"] == "ready":
-            print("Running processing while idle")
+            logger.info("Running processing while idle")
             thread = threading.Thread(target=orchestrator.processChatsInBackground)
             thread.start()
             # orchestrator.processChatsInBackground()
-            print("Finished background processing")
+            logger.info("Finished background processing")
         else:
-            print("Checked processing but server was busy")
+            logger.info("Checked processing but server was busy")
 
 
 @app.on_event("startup")
@@ -110,7 +118,7 @@ async def send_message(req: ChatRequest, background_tasks: BackgroundTasks):
             headers={"X-Accel-Buffering": "no"},  # stop nginx-style proxies from buffering
         )
     except KoboldError as error:
-        print(error)
+        logger.error(error)
         return {"type": "error", "chat_id": req.chat_id, "message": error.args}
 
 
@@ -128,7 +136,7 @@ def process_chat(req: ChatActionRequest, background_tasks: BackgroundTasks):
         run_post_processing(chat_id)
         return db.load_conversation(chat_id)
     except KoboldError as error:
-        print(error)
+        logger.error(error)
         return {"type": "error", "chat_id": req.chat_id, "message": error.args}
 
 
@@ -136,11 +144,12 @@ def process_chat(req: ChatActionRequest, background_tasks: BackgroundTasks):
 def load_messages(req: ChatActionRequest):
     chat_id = req.chat_id
     if chat_id is None:
+        logger.info("Chat_id was None for LoadChat")
         return
 
     db = databasehandler.DatabaseHandler()
     chat_data = db.load_conversation(chat_id)
-    return _packageChatData(chat_data, chat_id)
+    return chat_data
 
 
 @app.post("/api/deleteAllChats")
@@ -180,13 +189,13 @@ def stop_generation():
     try:
         orchestrator.stopGeneration()
     except KoboldError as error:
-        print(error)
+        logger.error(error)
         return {"type": "error", "message": error.args}
 
 
 @app.post("/api/generateID")
 def generate_ID():
-    print("Creating ID")
+    logger.info("Creating ID")
     db = databasehandler.DatabaseHandler()
     new_id = db.create_conversation()
     return {"id": new_id}

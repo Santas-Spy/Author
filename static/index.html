@@ -2056,9 +2056,9 @@
                         requestChatId === state.chatId && !state.editMode;
                     if (stillViewingThisChat) {
                         thinkingRow.remove();
-                        renderTranscript(data.text ?? "");
+                        renderTranscript(data.content ?? "");
                         renderChatInfo(data);
-                        state.rawTranscript = data.text ?? "";
+                        state.rawTranscript = data.content ?? "";
                     } else {
                         thinkingRow.remove();
                     }

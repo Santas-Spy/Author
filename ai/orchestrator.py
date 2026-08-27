@@ -98,7 +98,27 @@ def catagorizeConversation(chat_id: str):
     response = koboldInstance.sendMessage(text)
     split_response = chatformatter.seperateThinking(response)
     answer = split_response["response"]
-    db.update_conversation(chat_id, {"tags": answer, "processedCatagories": True})
+
+    # Try to pull a JSON array out of the response.
+    # Models often wrap it in prose: "Here are the tags: [\"a\", \"b\"]"
+    tags = None
+    try:
+        tags = json.loads(answer)
+    except json.JSONDecodeError:
+        # Look for the first [...] block in the text
+        start = answer.find("[")
+        end = answer.rfind("]")
+        if start != -1 and end > start:
+            try:
+                tags = json.loads(answer[start : end + 1])
+            except json.JSONDecodeError:
+                tags = None
+
+    # Fallback: treat the whole response as a single tag
+    if tags is None:
+        tags = [answer] if answer else "[]"
+
+    db.update_conversation(chat_id, {"tags": tags, "processedCatagories": True})
     setStatus("ready", "Ready")
 
 
@@ -159,7 +179,6 @@ def sendUserMessage(chat_id: str, user_message: str):
         streamed_response += token
         yield {"type": "token", "chat_id": str(chat_id), "token": token}
         print(token, end="", flush=True)
-    print()
     split_response = chatformatter.seperateThinking(streamed_response)
     chatText = chatText + split_response["response"]
     db.update_conversation(chat_id, {"content": chatText})

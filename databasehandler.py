@@ -105,6 +105,14 @@ class DatabaseHandler:
 
         if fields:
             values.append(conversation_id)
+            print("Saving Chat Data")
+            print(fields)
+            print(values)
+            print(f"""
+            UPDATE conversations
+            SET {", ".join(fields)}
+            WHERE id = ?
+            """)
 
             with self.connect() as connection:
                 cursor = connection.cursor()
