@@ -99,6 +99,7 @@ def catagorizeConversation(chat_id: str):
     response = koboldInstance.sendMessage(text)
     split_response = chatformatter.seperateThinking(response)
     answer = split_response["response"]
+    answer = answer.strip()
 
     # Try to pull a JSON array out of the response.
     # Models often wrap it in prose: "Here are the tags: [\"a\", \"b\"]"
@@ -204,6 +205,9 @@ def processChatsInBackground():
     chat_info = db.list_chat_ids()
     try:
         for data in chat_info:
+            if "content" not in data:
+                continue
+
             id = data["id"]
             flags = db.check_conversation_status(id)
 
