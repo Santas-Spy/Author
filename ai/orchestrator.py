@@ -159,6 +159,7 @@ def sendUserMessage(chat_id: str, user_message: str):
 
     # Allow continuations
     if user_message != None and user_message != "":
+        user_message = chatformatter.cleanPlaceholders(user_message)
         chatText = chatText + "{{[INPUT]}}" + user_message + "{{[OUTPUT]}}"
         db.update_conversation(chat_id, {"content": chatText})
 
@@ -205,9 +206,6 @@ def processChatsInBackground():
     chat_info = db.list_chat_ids()
     try:
         for data in chat_info:
-            if "content" not in data:
-                continue
-
             id = data["id"]
             flags = db.check_conversation_status(id)
 

@@ -19,7 +19,7 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 # Configure once at module level
 logging.basicConfig(
-    level=logging.WARNING,
+    level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     stream=sys.stdout,  # or sys.stderr
 )
