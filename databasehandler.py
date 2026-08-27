@@ -166,9 +166,40 @@ class DatabaseHandler:
         with self.connect() as connection:
             cursor = connection.cursor()
 
+            # 1. Fetch the conversation
             cursor.execute("SELECT * FROM conversations WHERE id = (?)", (conversation_id,))
             conversation = cursor.fetchone()
-            return conversation
+
+            if conversation is None:
+                return None
+
+            # 2. Fetch the tag_ids linked to this conversation
+            cursor.execute(
+                "SELECT tag_id FROM conversation_tags WHERE conversation_id = (?) ORDER BY tag_id",
+                (conversation_id,),
+            )
+            tag_ids = [row[0] for row in cursor.fetchall()]
+
+            # 3. Resolve the actual tag rows
+            tags = None
+            if tag_ids:
+                placeholders = ",".join("?" * len(tag_ids))
+                cursor.execute(
+                    f"SELECT * FROM tags WHERE id IN ({placeholders}) ORDER BY id",
+                    tag_ids,
+                )
+                tags = cursor.fetchall()
+
+            # 4. Return conversation + its tags
+            data = {}
+            for key in conversation.keys():
+                data[key] = conversation[key]
+            if tags is not None:
+                tag_string = ""
+                for tag in tags:
+                    tag_string = tag_string + f"{tag['name']}, "
+                data["tags"] = tag_string
+            return data
 
     def check_conversation_status(self, conversation_id: str):
         with self.connect() as connection:
