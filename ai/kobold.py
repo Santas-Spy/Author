@@ -1,4 +1,5 @@
 import json
+from threading import Event
 from typing import Any, Dict, Iterator, Optional
 
 import requests
@@ -25,6 +26,7 @@ class KoboldInstance:
     def __init__(self):
         if not getattr(self, "_initialized", False):
             self._initialized = True
+            self._cancel_event: Event = Event()
             self.setEndpoint("LOCATION_NOT_SET")
 
     def setEndpoint(self, url: str, timeout: float = 30.0) -> None:
@@ -51,7 +53,7 @@ class KoboldInstance:
                 url,
                 json=json,
                 stream=stream,
-                timeout=self.timeout,
+                # timeout=self.timeout,
             )
             response.raise_for_status()
             return response
@@ -68,9 +70,16 @@ class KoboldInstance:
         text_field: str,
     ) -> Iterator[str]:
         """Yield `text_field` from each JSON object in a KoboldCpp stream."""
+        self._cancel_event.clear()
         for line in response.iter_lines():
             if not line:
                 continue
+
+            if self._cancel_event.is_set():
+                print("CANCELLING GENERATION")
+                self._cancel_event.clear()
+                break
+
             decoded_line = line.decode("utf-8")
             if decoded_line.startswith("data: "):
                 decoded_line = decoded_line[6:]
@@ -79,6 +88,7 @@ class KoboldInstance:
             except json.JSONDecodeError:
                 continue
             yield str(data.get(text_field, ""))
+        self._cancel_event.clear()
 
     def sendMessage(
         self,
@@ -165,6 +175,7 @@ class KoboldInstance:
 
     def stopGeneration(self) -> None:
         """Signal the server to stop the current generation."""
+        self._cancel_event.set()
         self._request("POST", "/api/extra/abort")
 
 

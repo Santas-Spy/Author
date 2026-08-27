@@ -21,7 +21,7 @@ class StateManager:
         self._lock = threading.Lock()
         self._status: OrchestratorState = OrchestratorState.READY
         self._message: str = "Ready"
-        self._cancel_event: threading.Event = threading.Event()
+        self._canceled: threading.Event = threading.Event()
 
     def _set(self, status: OrchestratorState, message: str):
         with self._lock:
@@ -31,14 +31,36 @@ class StateManager:
             self._message = message
             print(f"State -> {status.value}: {message}", flush=True)
 
-    def ready(self, message: str):
+    def _format_message(self, message, id):
+        if id:
+            db = databasehandler.DatabaseHandler()
+            chat_name = id
+            title = db.get_chat_title(id)
+            if title is not None:
+                chat_name = title
+            message = message.format(title=chat_name)
+        return message
+
+    def ready(self, message: str, chat_id=None):
+        message = self._format_message(message, chat_id)
         self._set(OrchestratorState.READY, message)
 
-    def working(self, message: str):
+    def working(self, message: str, chat_id=None):
+        message = self._format_message(message, chat_id)
         self._set(OrchestratorState.WORKING, message)
 
-    def offline(self, message: str):
+    def offline(self, message: str, chat_id=None):
+        message = self._format_message(message, chat_id)
         self._set(OrchestratorState.OFFLINE, message)
+
+    def cancel(self):
+        self._canceled.set()
+
+    def clear_cancel(self):
+        self._canceled.clear()
+
+    def is_canceled(self):
+        return self._canceled.is_set()
 
     def get_state(self):
         with self._lock:
@@ -67,7 +89,7 @@ def chooseModel(message: str):
 
 def summarizeConversation(chat_id: str):
     db = databasehandler.DatabaseHandler()
-    state.working(f"Summarizing chat {chat_id}")
+    state.working("Summarizing chat {title}", chat_id=chat_id)
 
     # Build the prompt
     prompt = config.readSetting("prompts.summarize_conversation")
@@ -98,7 +120,7 @@ def summarizeConversation(chat_id: str):
 
 def analyzeConversation(chat_id: str):
     return
-    state.working(f"Analyzing chat {chat_id}")
+    state.working("Analyzing chat {title}", chat_id=chat_id)
     prompt = config.readSetting("prompts.analyze_conversation")
     chat_text = DatabaseHandler.load_conversation(chat_id)["content"]
     chat_text = chatformatter.cleanPlaceholders(
@@ -127,7 +149,7 @@ def analyzeConversation(chat_id: str):
 
 def catagorizeConversation(chat_id: str):
     db = databasehandler.DatabaseHandler()
-    state.working(f"Catagorizing chat {chat_id}")
+    state.working("Catagorizing chat {title}", chat_id=chat_id)
     prompt = config.readSetting("prompts.catagorize_conversation")
     chat_text = db.load_conversation(chat_id)["content"]
     chat_text = chatformatter.cleanPlaceholders(
@@ -164,7 +186,7 @@ def catagorizeConversation(chat_id: str):
 
 def generateTitle(chat_id: str):
     db = databasehandler.DatabaseHandler()
-    state.working(f"Generating Title for chat {chat_id}")
+    state.working("Generating Title for chat {title}", chat_id=chat_id)
     prompt = config.readSetting("prompts.title_generation")
     chat_text = db.load_conversation(chat_id)["content"]
     chat_text = chatformatter.cleanPlaceholders(
@@ -184,10 +206,12 @@ def sendUserMessage(chat_id: str, user_message: str):
 
     # Build the prompt
     prompt = config.readSetting("prompts.system")
-    if chat_data is not None and "system_prompt" in chat_data:
+    if (
+        chat_data is not None
+        and "system_prompt" in chat_data
+        and chat_data["system_prompt"] is not None
+    ):
         prompt = chat_data["system_prompt"]
-        if prompt is None:
-            prompt = ""
     db.update_conversation(chat_id, {"system_prompt": prompt})
 
     # Build the conversation history
@@ -212,11 +236,11 @@ def sendUserMessage(chat_id: str, user_message: str):
     chooseModel(user_message)
 
     # Send the message, streaming tokens as they arrive
-    state.working(f"Thinking about chat {chat_id}")
+    state.working("Thinking about chat {title}", chat_id=chat_id)
     message = prompt + chatText
     streamed_response = ""
     for token in koboldInstance.generate(message):
-        state.working(f"Writing in chat {chat_id}")
+        state.working("Writing in chat {title}", chat_id=chat_id)
         streamed_response += token
         yield {"type": "token", "chat_id": str(chat_id), "token": token}
     split_response = chatformatter.seperateThinking(streamed_response)
@@ -244,30 +268,30 @@ def processChatsInBackground():
         for data in chat_info:
             id = data["id"]
             flags = db.check_conversation_status(id)
+            if flags["hasText"]:
+                if state.is_canceled():
+                    break
+                if flags["processedTitle"] == 0:
+                    generateTitle(id)
 
-            if process_chats_flag == "cancel":
-                return
-            if flags["processedTitle"] == 0:
-                generateTitle(id)
+                if state.is_canceled():
+                    break
+                if flags["processedSummary"] == 0:
+                    summarizeConversation(id)
 
-            if process_chats_flag == "cancel":
-                return
-            if flags["processedSummary"] == 0:
-                summarizeConversation(id)
+                if state.is_canceled():
+                    break
+                if flags["processedTags"] == 0:
+                    catagorizeConversation(id)
 
-            if process_chats_flag == "cancel":
-                return
-            if flags["processedTags"] == 0:
-                catagorizeConversation(id)
-
-            if process_chats_flag == "cancel":
-                return
-            if flags["processedAnalysis"] == 0:
-                analyzeConversation(id)
+                if state.is_canceled():
+                    break
+                if flags["processedAnalysis"] == 0:
+                    analyzeConversation(id)
     except KoboldError:
         print("Kobold instance was not running. Could not process chats")
 
-    process_chats_flag = "ready"
+    state.clear_cancel()
 
 
 def update_conversation(data):
@@ -276,9 +300,8 @@ def update_conversation(data):
 
 
 def cancelProcessing():
-    process_chats_flag = "cancel"
+    state.cancel()
     stopGeneration()
-    process_chats_flag = "ready"
 
 
 def stopGeneration():

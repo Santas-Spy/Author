@@ -213,17 +213,18 @@ class DatabaseHandler:
             cursor = connection.cursor()
 
             cursor.execute(
-                """SELECT processedSummary, processedTitle, processedAnalysis, processedTags
+                """SELECT content, processedSummary, processedTitle, processedAnalysis, processedTags
                    FROM conversations WHERE id = (?)""",
                 (conversation_id,),
             )
 
             row = cursor.fetchone()
             return {
-                "processedSummary": row[0],
-                "processedTitle": row[1],
-                "processedAnalysis": row[2],
-                "processedTags": row[3],
+                "hasText": row[0] != None,
+                "processedSummary": row[1],
+                "processedTitle": row[2],
+                "processedAnalysis": row[3],
+                "processedTags": row[4],
             }
 
     def list_chat_ids(self):
@@ -234,6 +235,14 @@ class DatabaseHandler:
             rows = cursor.fetchall()
             ids = [{"id": row[0], "title": row[1]} for row in rows]
             return ids
+
+    def get_chat_title(self, chat_id) -> str | None:
+        with self.connect() as connection:
+            cursor = connection.cursor()
+
+            cursor.execute("SELECT title FROM conversations WHERE id = (?)", (chat_id,))
+            title = cursor.fetchone()[0]
+            return title
 
     def delete_all_chats(self):
         with self.connect() as connection:

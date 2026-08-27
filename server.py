@@ -68,11 +68,11 @@ def _packageChatData(raw_data, chat_id):
 
 
 def run_post_processing(chat_id: str):
+    orchestrator.generateTitle(chat_id)
     orchestrator.summarizeConversation(chat_id)
     orchestrator.catagorizeConversation(chat_id)
     orchestrator.analyzeConversation(chat_id)
-    orchestrator.generateTitle(chat_id)
-    orchestrator.setStatus("ready", "Ready")
+    orchestrator.state.ready("Ready")
 
 
 def check_run_background_processing():
@@ -172,7 +172,7 @@ def delete_chat(req: ChatActionRequest):
 @app.get("/api/status")
 def get_status():
     # THIS IS SO BAD but it'll do for now. Use webpage's polling to schedule background processing
-    check_run_background_processing()
+    # check_run_background_processing()
     return orchestrator.getStatus()
 
 
