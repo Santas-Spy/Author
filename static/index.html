@@ -2367,10 +2367,6 @@
                     clearMessages();
                     dom.infoFieldList.innerHTML = "";
                     state.rawTranscript = "";
-                    appendMessage(
-                        "assistant",
-                        "This chat was deleted. Start a new chat or pick another one from the list.",
-                    );
                 }
 
                 await refreshChatList();
@@ -2499,7 +2495,11 @@
 
             async function deleteAllChats() {
                 await callBackend(CONFIG.endpoints.deleteAllChats, {});
+                clearMessages();
                 refreshChatList();
+                dom.infoFieldList.innerHTML = "";
+                state.rawTranscript = "";
+                state.chatId = null;
             }
 
             /**

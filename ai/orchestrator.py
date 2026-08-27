@@ -209,6 +209,11 @@ def processChatsInBackground():
 
             if process_chats_flag == "cancel":
                 return
+            if flags["processedTitle"] == 0:
+                generateTitle(id)
+
+            if process_chats_flag == "cancel":
+                return
             if flags["processedSummary"] == 0:
                 summarizeConversation(id)
 
@@ -221,11 +226,6 @@ def processChatsInBackground():
                 return
             if flags["processedAnalysis"] == 0:
                 analyzeConversation(id)
-
-            if process_chats_flag == "cancel":
-                return
-            if flags["processedTitle"] == 0:
-                generateTitle(id)
     except KoboldError:
         print("Kobold instance was not running. Could not process chats")
 

@@ -198,7 +198,11 @@ class DatabaseHandler:
             return ids
 
     def delete_all_chats(self):
-        pass
+        with self.connect() as connection:
+            cursor = connection.cursor()
+            cursor.execute("DELETE FROM conversations")
 
     def delete_chat(self, conversation_id):
-        pass
+        with self.connect() as connection:
+            cursor = connection.cursor()
+            cursor.execute("DELETE FROM conversations WHERE id = (?)", (conversation_id,))
