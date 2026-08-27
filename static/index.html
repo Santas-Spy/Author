@@ -1895,11 +1895,12 @@
                         infoFields[el.dataset.infoKey] = el.value;
                     });
 
+                infoFields.content = editedText;
+
                 dom.editModeButton.disabled = true;
                 try {
                     await callBackend(CONFIG.endpoints.updateChat, {
                         chat_id: chatId,
-                        text: editedText,
                         ...infoFields,
                     });
                 } catch (error) {
@@ -2064,6 +2065,7 @@
                     }
 
                     if (data.title) updateChatTitle(requestChatId, data.title);
+
                 } catch (error) {
                     thinkingRow.remove();
                     if (requestChatId === state.chatId) {
@@ -2073,6 +2075,7 @@
                         );
                     }
                 }
+                dom.messageInput.focus();
             }
 
             async function sendMessage(event) {
@@ -2522,6 +2525,7 @@
                 "Hello! Send a message below to start chatting with your AI backend.",
             );
             loadChat();
+            dom.messageInput.focus();
             refreshChatList();
             startStatusPolling();
         </script>

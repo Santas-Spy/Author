@@ -178,10 +178,8 @@ def get_status():
 
 @app.post("/api/updateChat")
 def update_chat(req: UpdateChatRequest):
-    db = databasehandler.DatabaseHandler()
-    chat_id = req.chat_id
-    data = req.model_dump(exclude={"chat_id"})
-    db.update_conversation(chat_id, data)
+    data = req.model_dump()
+    orchestrator.update_conversation(data)
 
 
 @app.post("/api/stop")

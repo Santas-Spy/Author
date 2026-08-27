@@ -1,5 +1,7 @@
 import datetime
 import json
+import threading
+from enum import Enum
 from json import JSONDecodeError
 
 import config
@@ -7,8 +9,44 @@ import databasehandler
 from ai import chatformatter
 from ai.kobold import KoboldError, koboldInstance
 
-state = {"status": "ready", "message": "Ready"}
+
+class OrchestratorState(Enum):
+    READY = "ready"
+    WORKING = "working"
+    OFFLINE = "offline"
+
+
+class StateManager:
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._status: OrchestratorState = OrchestratorState.READY
+        self._message: str = "Ready"
+        self._cancel_event: threading.Event = threading.Event()
+
+    def _set(self, status: OrchestratorState, message: str):
+        with self._lock:
+            if self._status == status and self._message == message:
+                return
+            self._status = status
+            self._message = message
+            print(f"State -> {status.value}: {message}", flush=True)
+
+    def ready(self, message: str):
+        self._set(OrchestratorState.READY, message)
+
+    def working(self, message: str):
+        self._set(OrchestratorState.WORKING, message)
+
+    def offline(self, message: str):
+        self._set(OrchestratorState.OFFLINE, message)
+
+    def get_state(self):
+        with self._lock:
+            return {"status": self._status.value, "message": self._message}
+
+
 process_chats_flag = "ready"
+state = StateManager()
 
 
 def sendMessage(text: str):
@@ -17,19 +55,19 @@ def sendMessage(text: str):
 
 def chooseModel(message: str):
     return  # Skip this for now since model loading isn't supported
-    setStatus("working", "Choosing Model")
+    state.working("Choosing Model")
     text = config.readSetting("prompts.choose_model")
     text = text.replace("{request}", message)
     response = koboldInstance.sendMessage(text)
     split_response = chatformatter.seperateThinking(response)
     answer = split_response["response"]
-    setStatus("ready", "Ready")
+    state.ready("Ready")
     koboldInstance.loadModel(answer)
 
 
 def summarizeConversation(chat_id: str):
     db = databasehandler.DatabaseHandler()
-    setStatus("working", f"Summarizing chat {chat_id}")
+    state.working(f"Summarizing chat {chat_id}")
 
     # Build the prompt
     prompt = config.readSetting("prompts.summarize_conversation")
@@ -55,12 +93,12 @@ def summarizeConversation(chat_id: str):
         new_word_count = len(answer.split(" "))
         print(f"Summarized conversation of length {word_count} to {new_word_count}")
     db.update_conversation(chat_id, {"processedSummary": True})
-    setStatus("ready", "Ready")
+    state.ready("Ready")
 
 
 def analyzeConversation(chat_id: str):
     return
-    setStatus("working", f"Analyzing chat {chat_id}")
+    state.working(f"Analyzing chat {chat_id}")
     prompt = config.readSetting("prompts.analyze_conversation")
     chat_text = DatabaseHandler.load_conversation(chat_id)["content"]
     chat_text = chatformatter.cleanPlaceholders(
@@ -84,12 +122,12 @@ def analyzeConversation(chat_id: str):
 
         chathandler.saveAnalysis(result)
     chathandler.saveChatData(chat_id, processedAnalysis=True)
-    setStatus("ready", "Ready")
+    state.ready("Ready")
 
 
 def catagorizeConversation(chat_id: str):
     db = databasehandler.DatabaseHandler()
-    setStatus("working", f"Catagorizing chat {chat_id}")
+    state.working(f"Catagorizing chat {chat_id}")
     prompt = config.readSetting("prompts.catagorize_conversation")
     chat_text = db.load_conversation(chat_id)["content"]
     chat_text = chatformatter.cleanPlaceholders(
@@ -121,12 +159,12 @@ def catagorizeConversation(chat_id: str):
         tags = [answer] if answer else "[]"
 
     db.update_conversation(chat_id, {"tags": tags, "processedTags": True})
-    setStatus("ready", "Ready")
+    state.ready("Ready")
 
 
 def generateTitle(chat_id: str):
     db = databasehandler.DatabaseHandler()
-    setStatus("working", f"Generating Title for chat {chat_id}")
+    state.working(f"Generating Title for chat {chat_id}")
     prompt = config.readSetting("prompts.title_generation")
     chat_text = db.load_conversation(chat_id)["content"]
     chat_text = chatformatter.cleanPlaceholders(
@@ -137,7 +175,7 @@ def generateTitle(chat_id: str):
     split_response = chatformatter.seperateThinking(response)
     answer = split_response["response"]
     db.update_conversation(chat_id, {"title": answer, "processedTitle": True})
-    setStatus("ready", "Ready")
+    state.ready("Ready")
 
 
 def sendUserMessage(chat_id: str, user_message: str):
@@ -146,7 +184,7 @@ def sendUserMessage(chat_id: str, user_message: str):
 
     # Build the prompt
     prompt = config.readSetting("prompts.system")
-    if "system_prompt" in chat_data:
+    if chat_data is not None and "system_prompt" in chat_data:
         prompt = chat_data["system_prompt"]
         if prompt is None:
             prompt = ""
@@ -154,8 +192,8 @@ def sendUserMessage(chat_id: str, user_message: str):
 
     # Build the conversation history
     chatText = ""
-    if "text" in chat_data:
-        chatText = chat_data["text"]
+    if chat_data is not None and "content" in chat_data:
+        chatText = chat_data["content"]
 
     # Allow continuations
     if user_message != None and user_message != "":
@@ -174,34 +212,32 @@ def sendUserMessage(chat_id: str, user_message: str):
     chooseModel(user_message)
 
     # Send the message, streaming tokens as they arrive
-    setStatus("working", f"Thinking about chat {chat_id}")
+    state.working(f"Thinking about chat {chat_id}")
     message = prompt + chatText
     streamed_response = ""
     for token in koboldInstance.generate(message):
-        setStatus("working", f"Writing in chat {chat_id}")
+        state.working(f"Writing in chat {chat_id}")
         streamed_response += token
         yield {"type": "token", "chat_id": str(chat_id), "token": token}
-        print(token, end="", flush=True)
     split_response = chatformatter.seperateThinking(streamed_response)
     chatText = chatText + split_response["response"]
-    db.update_conversation(chat_id, {"content": chatText})
-    setStatus("ready", "Ready")
+    # chatText = chatText + streamed_response <-- Eventually ;_;
+    db.update_conversation(
+        chat_id,
+        {
+            "content": chatText,
+            "processedSummary": False,
+            "processedTags": False,
+            "processedTitle": True,
+        },
+    )
+    state.ready("Ready")
 
     yield {"type": "complete", "chat_id": str(chat_id), "text": chatText}
 
 
-def setStatus(status: str = "working", message: str = ""):
-    global state
-    if state["status"] == status and state["message"] == message:
-        return
-
-    print("Set state: " + json.dumps(state), flush=True)
-    state = {"status": status, "message": message}
-
-
 def processChatsInBackground():
     db = databasehandler.DatabaseHandler()
-    global process_chats_flag
     process_chats_flag = "working"
     chat_info = db.list_chat_ids()
     try:
@@ -234,8 +270,12 @@ def processChatsInBackground():
     process_chats_flag = "ready"
 
 
+def update_conversation(data):
+    db = databasehandler.DatabaseHandler()
+    db.update_conversation(data["chat_id"], data)
+
+
 def cancelProcessing():
-    global process_chats_flag
     process_chats_flag = "cancel"
     stopGeneration()
     process_chats_flag = "ready"
@@ -246,4 +286,4 @@ def stopGeneration():
 
 
 def getStatus():
-    return state
+    return state.get_state()

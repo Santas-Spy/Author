@@ -87,6 +87,8 @@ def cleanPlaceholders(text: str) -> str:
     """
     Replaces all conversation tags with invalid ones. This allows a model to read the conversation history as an input rather than multiple messages
     """
+    if text is None:
+        return
     text = text.replace("{{[SYSTEM]}}", "{[SYSTEM]}")
     text = text.replace("{{[INPUT]}}", "{[INPUT]}")
     text = text.replace("{{[OUTPUT]}}", "{[OUTPUT]}")

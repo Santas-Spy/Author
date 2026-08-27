@@ -1,6 +1,7 @@
 import json
 import os
 import sqlite3
+from json.decoder import JSONDecodeError
 from uuid import UUID, uuid4
 
 
@@ -125,7 +126,10 @@ class DatabaseHandler:
 
             # Support either a JSON string or a Python list
             if isinstance(tags, str):
-                tags = json.loads(tags)
+                try:
+                    tags = json.loads(tags)
+                except JSONDecodeError:
+                    print(f"Could not parse tags: {tags}")
 
             with self.connect() as connection:
                 cursor = connection.cursor()
@@ -199,6 +203,9 @@ class DatabaseHandler:
                 for tag in tags:
                     tag_string = tag_string + f"{tag['name']}, "
                 data["tags"] = tag_string
+
+            if data["content"] == None:
+                data["content"] = ""
             return data
 
     def check_conversation_status(self, conversation_id: str):
