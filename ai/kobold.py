@@ -128,7 +128,10 @@ class KoboldInstance:
         self,
         prompt: str,
         max_length: int = 16384,
-        temperature: float = 0.8,
+        temperature: float = 0.6,
+        top_k: int = 20,
+        top_p: float = 0.95,
+        rep_pen: float = 1.05,
         image: Optional[str] = None,
         format: bool = True,
         extra: Optional[Dict[str, Any]] = None,
@@ -138,6 +141,9 @@ class KoboldInstance:
             "prompt": prompt,
             "max_length": max_length,
             "temperature": temperature,
+            "top_k": top_k,
+            "top_p": top_p,
+            "rep_pen": rep_pen,
             "replace_instruct_placeholders": format,
         }
         if image:
