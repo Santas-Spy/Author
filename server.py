@@ -73,27 +73,12 @@ def run_post_processing(chat_id: str):
     orchestrator.summarizeConversation(chat_id)
     orchestrator.catagorizeConversation(chat_id)
     orchestrator.analyzeConversation(chat_id)
-    orchestrator.state.ready("Ready")
+    orchestrator.state.ready()
 
 
 def check_run_background_processing():
-    # Check task is not already running
-    if orchestrator.process_chats_flag == "working":
-        logger.info("Processing Task was already running")
-
-    if orchestrator.process_chats_flag == "cancel":
-        logger.info("Processing Task was waiting to cancel")
-
-    if orchestrator.process_chats_flag == "ready":
-        # Check current app state
-        if state["status"] == "ready":
-            logger.info("Running processing while idle")
-            thread = threading.Thread(target=orchestrator.processChatsInBackground)
-            thread.start()
-            # orchestrator.processChatsInBackground()
-            logger.info("Finished background processing")
-        else:
-            logger.info("Checked processing but server was busy")
+    thread = threading.Thread(target=orchestrator.processChatsInBackground)
+    thread.start()
 
 
 @app.on_event("startup")

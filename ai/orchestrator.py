@@ -2,7 +2,7 @@ import datetime
 import json
 import threading
 from enum import Enum
-from json import JSONDecodeError
+from json.decoder import JSONDecodeError
 
 import config
 import databasehandler
@@ -41,11 +41,11 @@ class StateManager:
             message = message.format(title=chat_name)
         return message
 
-    def ready(self, message: str, chat_id=None):
+    def ready(self, message: str = "Ready", chat_id=None):
         message = self._format_message(message, chat_id)
         self._set(OrchestratorState.READY, message)
 
-    def working(self, message: str, chat_id=None):
+    def working(self, message: str = "Working", chat_id=None):
         message = self._format_message(message, chat_id)
         self._set(OrchestratorState.WORKING, message)
 
@@ -78,7 +78,7 @@ def chooseModel(message: str):
     response = koboldInstance.sendMessage(text)
     split_response = chatformatter.seperateThinking(response)
     answer = split_response["response"]
-    state.ready("Ready")
+    state.ready()
     koboldInstance.loadModel(answer)
 
 
@@ -100,7 +100,7 @@ def loadConversation(chat_id: str, prompt_name: str):
     return {"chat_text": chat_text, "prompt": prompt, "formatted_prompt": formatted_prompt}
 
 
-def getOnlyAnswer(prompt):
+def getOnlyAnswer(prompt) -> str | None:
     try:
         response = koboldInstance.generate(prompt=prompt, stream=False, discard_incomplete=True)
         split_response = chatformatter.seperateThinking(response)
@@ -131,38 +131,35 @@ def summarizeConversation(chat_id: str):
         if summary:
             db = databasehandler.DatabaseHandler()
             db.update_conversation(chat_id, {"summary": summary, "processedSummary": True})
-    state.ready("Ready")
+    state.ready()
 
 
-def analyzeConversation(chat_id: str):
+def analyzeConversation(chat_id: str, user_id: int = 0):
+    state.working("Learning about user from chat {title}", chat_id=chat_id)
+    content = loadConversation(chat_id, "analyze_conversation")
+    if not content["chat_text"] or not content["prompt"]:
+        return
+
+    formatted_prompt = content["formatted_prompt"]
+
     db = databasehandler.DatabaseHandler()
-    db.update_conversation(chat_id, {"processedAnalysis": True})
-    return  # This function isnt working consistently
-    state.working("Analyzing chat {title}", chat_id=chat_id)
-    prompt = config.readSetting("prompts.analyze_conversation")
-    chat_text = DatabaseHandler.load_conversation(chat_id)["content"]
-    chat_text = chatformatter.cleanPlaceholders(
-        chat_text
-    )  # Clean the text so model can read conversation flow
-    userFacts = chathandler.loadAnalysis()
-    text = prompt.replace("{history}", chat_text).replace("{user_facts}", userFacts)
-    response = koboldInstance.sendMessage(text)
-    split_response = chatformatter.seperateThinking(response)
-    answer = split_response["response"]
+    user_facts = db.get_user_facts(user_id)
+    formatted_prompt.replace("{user_facts}", json.dumps(user_facts))
 
-    if answer.strip() != "" and answer.strip() != "[]":
-        result = answer
+    # Generate a summary
+    facts = getOnlyAnswer(formatted_prompt)
+    if facts:
         try:
-            factsJson = json.loads(userFacts)
-            answerJson = json.loads(answer)
-            factsJson.extend(answerJson)
-            result = json.dumps(factsJson)
+            fact_list = json.loads(facts)
+            for fact in fact_list:
+                db.save_fact(user_id, fact)  # There are no Users yet so user_id=0
+            print("Current facts: " + str(db.get_user_facts(user_id)))
         except JSONDecodeError:
-            print("Warning. Tried to append new user facts but could not parse json")
+            print(f"ERROR: Facts were not json parsable: {facts}")
 
-        chathandler.saveAnalysis(result)
-    chathandler.saveChatData(chat_id, processedAnalysis=True)
-    state.ready("Ready")
+        db.update_conversation(chat_id, {"processedAnalysis": True})
+
+    state.ready()
 
 
 def catagorizeConversation(chat_id: str):
@@ -202,7 +199,7 @@ def catagorizeConversation(chat_id: str):
         tags = [answer] if answer else "[]"
 
     db.update_conversation(chat_id, {"tags": tags, "processedTags": True})
-    state.ready("Ready")
+    state.ready()
 
 
 def generateTitle(chat_id: str):
@@ -216,9 +213,10 @@ def generateTitle(chat_id: str):
     # Generate a summary
     title = getOnlyAnswer(formatted_prompt)
     if title:
+        title = title.strip()
         db = databasehandler.DatabaseHandler()
         db.update_conversation(chat_id, {"title": title, "processedTitle": True})
-    state.ready("Ready")
+    state.ready()
 
 
 def sendUserMessage(chat_id: str, user_message: str, force_thinking: bool = False):
@@ -277,7 +275,7 @@ def sendUserMessage(chat_id: str, user_message: str, force_thinking: bool = Fals
             "processedTags": False,
         },
     )
-    state.ready("Ready")
+    state.ready()
 
     yield {"type": "complete", "chat_id": str(chat_id), "text": chatText}
 
@@ -321,7 +319,6 @@ def processChatsInBackground():
 
         # Iterate through the processing jobs that need to be done
         for job in jobs:
-            print(f"Checking Job:{job}")
             if state.is_canceled():
                 break
             # Go through each job type in order

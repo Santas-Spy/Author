@@ -2,7 +2,7 @@ import json
 import os
 import sqlite3
 from json.decoder import JSONDecodeError
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 
 class DatabaseHandler:
@@ -61,6 +61,35 @@ class DatabaseHandler:
                 )
             """)
 
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT
+                )
+            """)
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS facts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    text TEXT NOT NULL
+                )
+            """)
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_facts (
+                    user_id INTEGER NOT NULL,
+                    fact_id INTEGER NOT NULL,
+
+                    PRIMARY KEY(user_id, fact_id),
+
+                    FOREIGN KEY (user_id)
+                        REFERENCES users(id),
+
+                    FOREIGN KEY (fact_id)
+                        REFERENCES facts(id)
+                        ON DELETE CASCADE
+                )
+            """)
+
     def create_conversation(self) -> str:
         conversation_id = str(uuid4())
         with self.connect() as connection:
@@ -81,6 +110,50 @@ class DatabaseHandler:
                 "INSERT INTO conversation_tags (conversation_id, tag_id) VALUES (?, ?)",
                 (conversation_id, tag_id),
             )
+
+    def create_user(self):
+        with self.connect() as connection:
+            cursor = connection.cursor()
+
+            cursor.execute("INSERT INTO users (id) VALUES (NULL);")
+            id = cursor.lastrowid
+            return id
+
+    def save_fact(self, user_id, fact):
+        with self.connect() as connection:
+            cursor = connection.cursor()
+
+            cursor.execute("INSERT INTO facts (text) VALUES (?)", (fact,))
+            id = cursor.lastrowid
+            if id is not None:
+                cursor.execute(
+                    "INSERT INTO user_facts (user_id, fact_id) VALUES (?, ?)", (user_id, id)
+                )
+
+    def delete_fact(self, fact):
+        with self.connect() as connection:
+            cursor = connection.cursor()
+
+            cursor.execute("SELECT id FROM facts WHERE text = ?", (fact,))
+            id = cursor.fetchone()[0]
+            cursor.execute("DELETE FROM facts WHERE id = ?", (id,))
+
+    def get_user_facts(self, user_id):
+        with self.connect() as connection:
+            cursor = connection.cursor()
+
+            cursor.execute(
+                """
+                SELECT facts.text
+                FROM facts
+                JOIN user_facts ON facts.id = user_facts.fact_id
+                WHERE user_facts.user_id = ?
+                """,
+                (user_id,),
+            )
+
+            rows = cursor.fetchall()
+            return [row[0] for row in rows]
 
     def update_conversation(self, conversation_id: str, data):
         allowed_fields = {

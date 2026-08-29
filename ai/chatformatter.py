@@ -20,7 +20,7 @@ def muse(prompt: str):
     raise NotImplementedError("Muse adapter not yet created")
 
 
-def seperateThinking(text, thinking_start="<think>", thinking_end="</think>"):
+def seperateThinking(text, thinking_start="<think>", thinking_end="</think>") -> dict[str, str]:
     # Search the text to ensure there is only one instance of <think> and </think>, otherwise things might get messy
     split_text = {"thinking": "", "response": text}
     if text.count(thinking_start) == 1 and text.count(thinking_end) == 1:
