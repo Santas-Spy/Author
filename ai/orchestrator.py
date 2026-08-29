@@ -7,7 +7,7 @@ from json import JSONDecodeError
 import config
 import databasehandler
 from ai import chatformatter
-from ai.kobold import KoboldError, koboldInstance
+from ai.kobold import KoboldError, KoboldOfflineError, koboldInstance
 
 
 class OrchestratorState(Enum):
@@ -49,8 +49,7 @@ class StateManager:
         message = self._format_message(message, chat_id)
         self._set(OrchestratorState.WORKING, message)
 
-    def offline(self, message: str, chat_id=None):
-        message = self._format_message(message, chat_id)
+    def offline(self, message: str = "Could not connect to KoboldCPP"):
         self._set(OrchestratorState.OFFLINE, message)
 
     def cancel(self):
@@ -64,15 +63,11 @@ class StateManager:
 
     def get_state(self):
         with self._lock:
-            return {"status": self._status.value, "message": self._message}
+            return {"status": self._status.value, "message": self._message, "state": self._status}
 
 
 process_chats_flag = "ready"
 state = StateManager()
-
-
-def sendMessage(text: str):
-    return koboldInstance.sendMessage(text)
 
 
 def chooseModel(message: str):
@@ -87,39 +82,63 @@ def chooseModel(message: str):
     koboldInstance.loadModel(answer)
 
 
-def summarizeConversation(chat_id: str):
+def loadConversation(chat_id: str, prompt_name: str):
     db = databasehandler.DatabaseHandler()
     state.working("Summarizing chat {title}", chat_id=chat_id)
 
     # Build the prompt
-    prompt = config.readSetting("prompts.summarize_conversation")
-    chat_text = db.load_conversation(chat_id)["content"]
-    chat_text = chatformatter.cleanPlaceholders(
-        chat_text
-    )  # Clean the text so model can read conversation flow
-    text = prompt.replace("{history}", chat_text)
-    word_count = len(chat_text.split(" "))
+    prompt = config.readSetting(f"prompts.{prompt_name}")
+    conversation = db.load_conversation(chat_id)
+    if conversation is None:
+        return {}
+
+    # Clean the text so model can read conversation flow
+    chat_text = conversation["content"]
+    chat_text = chatformatter.cleanPlaceholders(chat_text)
+
+    formatted_prompt = prompt.replace("{history}", chat_text)
+
+    return {"chat_text": chat_text, "prompt": prompt, "formatted_prompt": formatted_prompt}
+
+
+def getOnlyAnswer(prompt):
+    try:
+        response = koboldInstance.generate(prompt=prompt, stream=False, discard_incomplete=True)
+        split_response = chatformatter.seperateThinking(response)
+        answer = split_response["response"]
+        return answer
+    except KoboldOfflineError:
+        state.offline()
+        return None
+
+
+def summarizeConversation(chat_id: str):
+    state.working("Summarizing chat {title}", chat_id=chat_id)
+    content = loadConversation(chat_id, "summarize_conversation")
+
+    if not content["chat_text"] or not content["prompt"]:
+        return
+
+    formatted_prompt = content["formatted_prompt"]
+    word_count = len(content["chat_text"].split(" "))
 
     if word_count > 500:
-        text = text.replace(
+        prompt = formatted_prompt.replace(
             "{max_length}", str(min(word_count / 3, 150))
         )  # Hardcoding summary to 150 words for now
 
         # Generate a summary
-        response = koboldInstance.sendMessage(text)
-        split_response = chatformatter.seperateThinking(response)
-        answer = split_response["response"]
-
-        # Save the summary
-        db.update_conversation(chat_id, {"summary": answer})
-        new_word_count = len(answer.split(" "))
-        print(f"Summarized conversation of length {word_count} to {new_word_count}")
-    db.update_conversation(chat_id, {"processedSummary": True})
+        summary = getOnlyAnswer(prompt)
+        if summary:
+            db = databasehandler.DatabaseHandler()
+            db.update_conversation(chat_id, {"summary": summary, "processedSummary": True})
     state.ready("Ready")
 
 
 def analyzeConversation(chat_id: str):
-    return
+    db = databasehandler.DatabaseHandler()
+    db.update_conversation(chat_id, {"processedAnalysis": True})
+    return  # This function isnt working consistently
     state.working("Analyzing chat {title}", chat_id=chat_id)
     prompt = config.readSetting("prompts.analyze_conversation")
     chat_text = DatabaseHandler.load_conversation(chat_id)["content"]
@@ -149,6 +168,9 @@ def analyzeConversation(chat_id: str):
 
 def catagorizeConversation(chat_id: str):
     db = databasehandler.DatabaseHandler()
+    db.update_conversation(chat_id, {"processedTags": True})
+    return  # This function isnt working consistently
+
     state.working("Catagorizing chat {title}", chat_id=chat_id)
     prompt = config.readSetting("prompts.catagorize_conversation")
     chat_text = db.load_conversation(chat_id)["content"]
@@ -185,18 +207,18 @@ def catagorizeConversation(chat_id: str):
 
 
 def generateTitle(chat_id: str):
-    db = databasehandler.DatabaseHandler()
     state.working("Generating Title for chat {title}", chat_id=chat_id)
-    prompt = config.readSetting("prompts.title_generation")
-    chat_text = db.load_conversation(chat_id)["content"]
-    chat_text = chatformatter.cleanPlaceholders(
-        chat_text
-    )  # Clean the text so model can read conversation flow
-    text = prompt.replace("{history}", chat_text)
-    response = koboldInstance.sendMessage(text)
-    split_response = chatformatter.seperateThinking(response)
-    answer = split_response["response"]
-    db.update_conversation(chat_id, {"title": answer, "processedTitle": True})
+    content = loadConversation(chat_id, "title_generation")
+    if not content["chat_text"] or not content["prompt"]:
+        return
+
+    formatted_prompt = content["formatted_prompt"]
+
+    # Generate a summary
+    title = getOnlyAnswer(formatted_prompt)
+    if title:
+        db = databasehandler.DatabaseHandler()
+        db.update_conversation(chat_id, {"title": title, "processedTitle": True})
     state.ready("Ready")
 
 
@@ -252,7 +274,6 @@ def sendUserMessage(chat_id: str, user_message: str):
             "content": chatText,
             "processedSummary": False,
             "processedTags": False,
-            "processedTitle": True,
         },
     )
     state.ready("Ready")
@@ -261,9 +282,17 @@ def sendUserMessage(chat_id: str, user_message: str):
 
 
 def processChatsInBackground():
+    if state.get_state()["state"] != OrchestratorState.READY:
+        return
+
     db = databasehandler.DatabaseHandler()
-    process_chats_flag = "working"
     chat_info = db.list_chat_ids()
+    jobs = {
+        "title": [generateTitle, []],
+        "summary": [summarizeConversation, []],
+        "tags": [catagorizeConversation, []],
+        "analyze": [analyzeConversation, []],
+    }
     try:
         for data in chat_info:
             id = data["id"]
@@ -272,22 +301,35 @@ def processChatsInBackground():
                 if state.is_canceled():
                     break
                 if flags["processedTitle"] == 0:
-                    generateTitle(id)
+                    jobs["title"][1].append(id)
 
                 if state.is_canceled():
                     break
                 if flags["processedSummary"] == 0:
-                    summarizeConversation(id)
+                    jobs["summary"][1].append(id)
 
                 if state.is_canceled():
                     break
                 if flags["processedTags"] == 0:
-                    catagorizeConversation(id)
+                    jobs["tags"][1].append(id)
 
                 if state.is_canceled():
                     break
                 if flags["processedAnalysis"] == 0:
-                    analyzeConversation(id)
+                    jobs["analyze"][1].append(id)
+
+        # Iterate through the processing jobs that need to be done
+        for job in jobs:
+            print(f"Checking Job:{job}")
+            if state.is_canceled():
+                break
+            # Go through each job type in order
+            for id in jobs[job][1]:
+                if state.is_canceled():
+                    break
+                print(f"Running {job} job for chat {id}")
+                jobs[job][0](id)  # Call the job's function with the chat id
+
     except KoboldError:
         print("Kobold instance was not running. Could not process chats")
 
@@ -309,4 +351,9 @@ def stopGeneration():
 
 
 def getStatus():
+    online = koboldInstance.ping()
+    if not online:
+        state.offline()
+    if online and state.get_state()["state"] == OrchestratorState.OFFLINE:
+        state.ready("Server is back online")
     return state.get_state()

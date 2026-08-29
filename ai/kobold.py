@@ -14,6 +14,10 @@ class KoboldError(Exception):
     """Raised when a request to the KoboldCpp server fails."""
 
 
+class KoboldOfflineError(Exception):
+    """Kobold Server was not running"""
+
+
 class KoboldInstance:
     _instance = None
 
@@ -58,7 +62,7 @@ class KoboldInstance:
             response.raise_for_status()
             return response
         except ConnectionError as error:
-            raise KoboldError(
+            raise KoboldOfflineError(
                 f"Could not connect to KoboldCpp at {url}. Make sure the server is running."
             ) from error
         except requests.HTTPError as error:
@@ -90,40 +94,6 @@ class KoboldInstance:
             yield str(data.get(text_field, ""))
         self._cancel_event.clear()
 
-    def sendMessage(
-        self,
-        prompt: str,
-        max_length: int = 16384,
-        temperature: float = 0.8,
-        image: Optional[str] = None,
-        extra: Optional[Dict[str, Any]] = None,
-    ) -> str:
-        """Send a prompt to the streaming generation endpoint and return the full response."""
-        logging.logToFile(prompt, tag="[RAW PROMPT INPUT]", logtype="raw_text.txt")
-        prompt = chatformatter.lfm2_5(prompt)
-        logging.logToFile(prompt, tag="[PROMPT INPUT]")
-
-        max_length = int(config.readSetting("kobold.args.max_length", max_length))
-        temperature = int(config.readSetting("kobold.args.temp", temperature))
-
-        payload: Dict[str, Any] = {
-            "prompt": prompt,
-            "max_length": max_length,
-            "temperature": temperature,
-        }
-        if image:
-            payload["images"] = [image]
-        if extra:
-            payload.update(extra)
-
-        response = self._request(
-            "POST",
-            "/api/extra/generate/stream",
-            json=payload,
-            stream=True,
-        )
-        return "".join(self._iter_stream(response, "token"))
-
     def generate(
         self,
         prompt: str,
@@ -135,7 +105,9 @@ class KoboldInstance:
         image: Optional[str] = None,
         format: bool = True,
         extra: Optional[Dict[str, Any]] = None,
-    ) -> Iterator[str]:
+        stream: bool = False,
+        discard_incomplete: bool = True,
+    ) -> Iterator[str] | str:
         """Send a prompt to the streaming generation endpoint and yield tokens as they arrive."""
         payload: Dict[str, Any] = {
             "prompt": prompt,
@@ -151,10 +123,6 @@ class KoboldInstance:
         if extra:
             payload.update(extra)
 
-        # if format:
-        #    logging.logToFile(prompt, tag="[RAW PROMPT INPUT]", logtype="raw_text.txt")
-        #    prompt = chatformatter.replacePlaceholders(prompt, "qwen")
-
         logging.logToFile(prompt, tag="[PROMPT INPUT]")
 
         response = self._request(
@@ -163,7 +131,10 @@ class KoboldInstance:
             json=payload,
             stream=True,
         )
-        yield from self._iter_stream(response, "token")
+        if stream:
+            return self._iter_stream(response, "token")
+        else:
+            return "".join(self._iter_stream(response, "token"))
 
     def getMaxContext(self) -> int:
         """Return the maximum context length reported by the server."""
@@ -183,6 +154,21 @@ class KoboldInstance:
         """Signal the server to stop the current generation."""
         self._cancel_event.set()
         self._request("POST", "/api/extra/abort")
+
+    def ping(self) -> bool:
+        try:
+            short_timeout = 2.0
+            self._session.get(f"{self.base_url}/", timeout=short_timeout)
+            return True
+        except requests.exceptions.ConnectionError:
+            # Could not connect at all
+            return False
+        except requests.exceptions.Timeout:
+            # Server is taking too long to respond
+            return False
+        except Exception:
+            # Any other error (like DNS issues)
+            return False
 
 
 # Singleton instance
