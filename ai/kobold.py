@@ -5,9 +5,7 @@ from typing import Any, Dict, Iterator, Optional
 import requests
 from requests.exceptions import ConnectionError
 
-import config
 import loghandler as logging
-from ai import chatformatter
 
 
 class KoboldError(Exception):

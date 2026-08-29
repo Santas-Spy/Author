@@ -84,7 +84,6 @@ def chooseModel(message: str):
 
 def loadConversation(chat_id: str, prompt_name: str):
     db = databasehandler.DatabaseHandler()
-    state.working("Summarizing chat {title}", chat_id=chat_id)
 
     # Build the prompt
     prompt = config.readSetting(f"prompts.{prompt_name}")
@@ -222,7 +221,7 @@ def generateTitle(chat_id: str):
     state.ready("Ready")
 
 
-def sendUserMessage(chat_id: str, user_message: str):
+def sendUserMessage(chat_id: str, user_message: str, force_thinking: bool = False):
     db = databasehandler.DatabaseHandler()
     chat_data = db.load_conversation(chat_id)
 
@@ -245,6 +244,8 @@ def sendUserMessage(chat_id: str, user_message: str):
     if user_message != None and user_message != "":
         user_message = chatformatter.cleanPlaceholders(user_message)
         chatText = chatText + "{{[INPUT]}}" + user_message + "{{[OUTPUT]}}"
+        if force_thinking:
+            chatText = chatText + "<think>\nHere's a Thinking Process:\n"
         db.update_conversation(chat_id, {"content": chatText})
 
     # Fill in placeholders
@@ -261,7 +262,7 @@ def sendUserMessage(chat_id: str, user_message: str):
     state.working("Thinking about chat {title}", chat_id=chat_id)
     message = prompt + chatText
     streamed_response = ""
-    for token in koboldInstance.generate(message):
+    for token in koboldInstance.generate(message, stream=True):
         state.working("Writing in chat {title}", chat_id=chat_id)
         streamed_response += token
         yield {"type": "token", "chat_id": str(chat_id), "token": token}

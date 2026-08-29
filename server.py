@@ -39,6 +39,7 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     chat_id: str
     message: str
+    force_thinking: bool
 
 
 class UpdateChatRequest(BaseModel):
@@ -107,9 +108,10 @@ async def send_message(req: ChatRequest, background_tasks: BackgroundTasks):
         orchestrator.cancelProcessing()
         chat_id = req.chat_id
         user_message = req.message
+        force_thinking = req.force_thinking
 
         def token_gen():
-            for item in orchestrator.sendUserMessage(chat_id, user_message):
+            for item in orchestrator.sendUserMessage(chat_id, user_message, force_thinking):
                 yield json.dumps(item) + "\n"
 
         return StreamingResponse(
@@ -172,7 +174,7 @@ def delete_chat(req: ChatActionRequest):
 @app.get("/api/status")
 def get_status():
     # THIS IS SO BAD but it'll do for now. Use webpage's polling to schedule background processing
-    # check_run_background_processing()
+    check_run_background_processing()
     return orchestrator.getStatus()
 
 
@@ -197,6 +199,12 @@ def generate_ID():
     db = databasehandler.DatabaseHandler()
     new_id = db.create_conversation()
     return {"id": new_id}
+
+
+@app.post("/api/regenerateTitle")
+def regenerate_title(req: ChatActionRequest):
+    chat_id = req.chat_id
+    orchestrator.update_conversation({"chat_id": chat_id, "processedTitle": False})
 
 
 @app.get("/")
