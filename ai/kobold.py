@@ -4,6 +4,7 @@ from typing import Any, Dict, Iterator, Optional
 
 import requests
 from requests.exceptions import ConnectionError
+from requests.models import Response
 
 import loghandler as logging
 
@@ -91,6 +92,24 @@ class KoboldInstance:
                 continue
             yield str(data.get(text_field, ""))
         self._cancel_event.clear()
+
+    def generateWithTools(
+        self, messages: list[Dict[str, Any]], tools: list[dict[str, Any]], tool_choice="auto"
+    ) -> Any:
+        payload = {
+            "messages": messages,
+            "tools": tools,
+            "tool_choice": tool_choice,
+        }
+
+        response = self._request(
+            "POST",
+            "/v1/chat/completions",
+            json=payload,
+            stream=True,
+        )
+
+        return response.json()
 
     def generate(
         self,

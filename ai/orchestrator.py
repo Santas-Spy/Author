@@ -8,6 +8,7 @@ import config
 import databasehandler
 from ai import chatformatter
 from ai.kobold import KoboldError, KoboldOfflineError, koboldInstance
+from ai.tools import tools as tool_list
 
 
 class OrchestratorState(Enum):
@@ -118,6 +119,7 @@ def summarizeConversation(chat_id: str):
     if not content["chat_text"] or not content["prompt"]:
         return
 
+    db = databasehandler.DatabaseHandler()
     formatted_prompt = content["formatted_prompt"]
     word_count = len(content["chat_text"].split(" "))
 
@@ -129,8 +131,8 @@ def summarizeConversation(chat_id: str):
         # Generate a summary
         summary = getOnlyAnswer(prompt)
         if summary:
-            db = databasehandler.DatabaseHandler()
-            db.update_conversation(chat_id, {"summary": summary, "processedSummary": True})
+            db.update_conversation(chat_id, {"summary": summary})
+    db.update_conversation(chat_id, {"processedSummary": True})
     state.ready()
 
 
@@ -219,7 +221,13 @@ def generateTitle(chat_id: str):
     state.ready()
 
 
-def sendUserMessage(chat_id: str, user_message: str, force_thinking: bool = False):
+def sendUserMessage(
+    chat_id: str,
+    user_message: str,
+    user_id: int = 0,
+    force_thinking: bool = False,
+    use_tools: bool = True,
+):
     db = databasehandler.DatabaseHandler()
     chat_data = db.load_conversation(chat_id)
 
@@ -247,10 +255,11 @@ def sendUserMessage(chat_id: str, user_message: str, force_thinking: bool = Fals
         db.update_conversation(chat_id, {"content": chatText})
 
     # Fill in placeholders
-    user_profile = "{}"
+    user_facts = db.get_user_facts(user_id)
+    if user_facts is not None:
+        prompt = prompt.replace("{user_facts}", json.dumps(user_facts))
 
     current_date = datetime.datetime.now().strftime("%c")
-    prompt = prompt.replace("{user_profile}", user_profile)
     prompt = prompt.replace("{date}", current_date)
 
     # Choose the model
@@ -259,14 +268,22 @@ def sendUserMessage(chat_id: str, user_message: str, force_thinking: bool = Fals
     # Send the message, streaming tokens as they arrive
     state.working("Thinking about chat {title}", chat_id=chat_id)
     message = prompt + chatText
+    messages = chatformatter.split_conversation(message)
     streamed_response = ""
-    for token in koboldInstance.generate(message, stream=True):
-        state.working("Writing in chat {title}", chat_id=chat_id)
-        streamed_response += token
-        yield {"type": "token", "chat_id": str(chat_id), "token": token}
+    if use_tools:
+        response = koboldInstance.generateWithTools(messages, tools=tool_list.tools)
+        response = response.json()["choices"][0]["message"]
+        for tool in response["tool_calls"]:
+            tool_list.call_tool(tool)
+        streamed_response = response["content"]
+    else:
+        for token in koboldInstance.generate(message, stream=True):
+            state.working("Writing in chat {title}", chat_id=chat_id)
+            streamed_response += token
+            yield {"type": "token", "chat_id": str(chat_id), "token": token}
     split_response = chatformatter.seperateThinking(streamed_response)
     chatText = chatText + split_response["response"]
-    # chatText = chatText + streamed_response <-- Eventually ;_;
+
     db.update_conversation(
         chat_id,
         {

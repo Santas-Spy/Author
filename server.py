@@ -13,6 +13,7 @@ from starlette.concurrency import iterate_in_threadpool
 import ai.orchestrator as orchestrator
 import config
 import databasehandler
+from ai import chatformatter
 from ai.kobold import KoboldError, koboldInstance
 
 app = FastAPI()
@@ -96,7 +97,12 @@ async def send_message(req: ChatRequest, background_tasks: BackgroundTasks):
         force_thinking = req.force_thinking
 
         def token_gen():
-            for item in orchestrator.sendUserMessage(chat_id, user_message, force_thinking):
+            for item in orchestrator.sendUserMessage(
+                chat_id=chat_id,
+                user_message=user_message,
+                force_thinking=force_thinking,
+                use_tools=True,
+            ):
                 yield json.dumps(item) + "\n"
 
         return StreamingResponse(

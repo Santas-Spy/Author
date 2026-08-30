@@ -1,3 +1,6 @@
+import re
+
+
 def lfm2_5(prompt: str):
     prompt = prompt.replace(
         "{{[SYSTEM]}}", "<|startoftext|><|im_start|>system\n"
@@ -81,6 +84,40 @@ def replacePlaceholders(prompt: str, model: str) -> str:
     # Strip the last imend so that text can be continued
     text = text[: -len("<|im_end|>\n")]
     return text
+
+
+def split_conversation(text: str) -> list[dict[str, str]]:
+    pattern = r"\{\{\[(SYSTEM|INPUT|OUTPUT)\]\}\}"
+    role_map = {
+        "SYSTEM": "system",
+        "INPUT": "user",
+        "OUTPUT": "assistant",
+    }
+
+    messages: list[dict[str, str]] = []
+    matches = list(re.finditer(pattern, text))
+
+    if not matches:
+        return messages
+
+    for i, match in enumerate(matches):
+        marker_name = match.group(1)
+        role = role_map[marker_name]
+
+        # Content starts after the marker and ends before the next one (or end of string)
+        start = match.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+
+        content = text[start:end].strip()
+
+        messages.append(
+            {
+                "role": role,
+                "content": content,
+            }
+        )
+
+    return messages
 
 
 def cleanPlaceholders(text: str) -> str:

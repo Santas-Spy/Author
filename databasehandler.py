@@ -6,7 +6,7 @@ from uuid import uuid4
 
 
 class DatabaseHandler:
-    def __init__(self, database_name="appdata.db"):
+    def __init__(self, database_name="appdata_2.db"):
         dir = "data/"
         os.makedirs(dir, exist_ok=True)
         self.database_name = f"{dir}/{database_name}"
@@ -70,7 +70,11 @@ class DatabaseHandler:
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS facts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    text TEXT NOT NULL
+                    text TEXT NOT NULL,
+                    source_conversation_id INTEGER NOT NULL,
+
+                    FOREIGN KEY (source_conversation_id)
+                        REFERENCES conversations(id)
                 )
             """)
 
@@ -152,7 +156,8 @@ class DatabaseHandler:
                 (user_id,),
             )
 
-            rows = cursor.fetchall()
+            rows = cursor.fetchmany()
+            print(rows)
             return [row[0] for row in rows]
 
     def update_conversation(self, conversation_id: str, data):
