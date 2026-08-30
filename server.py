@@ -101,7 +101,7 @@ async def send_message(req: ChatRequest, background_tasks: BackgroundTasks):
                 chat_id=chat_id,
                 user_message=user_message,
                 force_thinking=force_thinking,
-                use_tools=True,
+                use_tools=False,
             ):
                 yield json.dumps(item) + "\n"
 

@@ -146,6 +146,7 @@ def analyzeConversation(chat_id: str, user_id: int = 0):
 
     db = databasehandler.DatabaseHandler()
     user_facts = db.get_user_facts(user_id)
+    print(user_facts)
     formatted_prompt.replace("{user_facts}", json.dumps(user_facts))
 
     # Generate a summary
@@ -154,7 +155,7 @@ def analyzeConversation(chat_id: str, user_id: int = 0):
         try:
             fact_list = json.loads(facts)
             for fact in fact_list:
-                db.save_fact(user_id, fact)  # There are no Users yet so user_id=0
+                db.save_fact(user_id, chat_id, fact)
             print("Current facts: " + str(db.get_user_facts(user_id)))
         except JSONDecodeError:
             print(f"ERROR: Facts were not json parsable: {facts}")
@@ -271,11 +272,15 @@ def sendUserMessage(
     messages = chatformatter.split_conversation(message)
     streamed_response = ""
     if use_tools:
-        response = koboldInstance.generateWithTools(messages, tools=tool_list.tools)
-        response = response.json()["choices"][0]["message"]
-        for tool in response["tool_calls"]:
-            tool_list.call_tool(tool)
-        streamed_response = response["content"]
+        for token in koboldInstance.generateWithTools(messages, tools=tool_list.tools):
+            streamed_response += token
+            print(token)
+            yield {"type": "token", "chat_id": str(chat_id), "token": token}
+        # response = koboldInstance.generateWithTools(messages, tools=tool_list.tools)
+        # response = response.json()["choices"][0]["message"]
+        # for tool in response["tool_calls"]:
+        #    tool_list.call_tool(tool)
+        # streamed_response = response["content"]
     else:
         for token in koboldInstance.generate(message, stream=True):
             state.working("Writing in chat {title}", chat_id=chat_id)

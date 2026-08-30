@@ -95,7 +95,7 @@ class KoboldInstance:
 
     def generateWithTools(
         self, messages: list[Dict[str, Any]], tools: list[dict[str, Any]], tool_choice="auto"
-    ) -> Any:
+    ) -> Iterator[str]:
         payload = {
             "messages": messages,
             "tools": tools,
@@ -109,7 +109,7 @@ class KoboldInstance:
             stream=True,
         )
 
-        return response.json()
+        return self._iter_stream(response, "token")
 
     def generate(
         self,

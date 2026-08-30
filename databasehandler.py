@@ -13,7 +13,8 @@ class DatabaseHandler:
         self.create_tables()
 
     def connect(self):
-        connection = sqlite3.connect(self.database_name)
+        # Remove transactions while testing
+        connection = sqlite3.connect(self.database_name, isolation_level=None)
         connection.execute("PRAGMA foreign_keys = ON")
         connection.row_factory = sqlite3.Row
         return connection
@@ -94,6 +95,11 @@ class DatabaseHandler:
                 )
             """)
 
+            # Ensure a default user exists for ID 0
+            cursor.execute("SELECT COUNT(*) FROM users")
+            if cursor.fetchone()[0] == 0:
+                cursor.execute("INSERT INTO users (id) VALUES (0)")
+
     def create_conversation(self) -> str:
         conversation_id = str(uuid4())
         with self.connect() as connection:
@@ -123,11 +129,14 @@ class DatabaseHandler:
             id = cursor.lastrowid
             return id
 
-    def save_fact(self, user_id, fact):
+    def save_fact(self, user_id, conversation_id, fact: str):
         with self.connect() as connection:
             cursor = connection.cursor()
 
-            cursor.execute("INSERT INTO facts (text) VALUES (?)", (fact,))
+            cursor.execute(
+                "INSERT INTO facts (text, source_conversation_id) VALUES (?, ?)",
+                (fact, conversation_id),
+            )
             id = cursor.lastrowid
             if id is not None:
                 cursor.execute(
@@ -156,7 +165,7 @@ class DatabaseHandler:
                 (user_id,),
             )
 
-            rows = cursor.fetchmany()
+            rows = cursor.fetchall()
             print(rows)
             return [row[0] for row in rows]
 
@@ -244,7 +253,52 @@ class DatabaseHandler:
                         (conversation_id, tag_id),
                     )
 
-    def load_conversation(self, conversation_id: str):
+    def load_conversation(self, conversation_id: str, user_id: int = 0):
+        def insert_tags(data):
+            # Fetch the tag_ids linked to this conversation
+            cursor.execute(
+                "SELECT tag_id FROM conversation_tags WHERE conversation_id = (?) ORDER BY tag_id",
+                (conversation_id,),
+            )
+            tag_ids = [row[0] for row in cursor.fetchall()]
+
+            # Resolve the actual tag rows
+            tags = None
+            if tag_ids:
+                placeholders = ",".join("?" * len(tag_ids))
+                cursor.execute(
+                    f"SELECT * FROM tags WHERE id IN ({placeholders}) ORDER BY id",
+                    tag_ids,
+                )
+                tags = cursor.fetchall()
+
+            # Load tags into the table
+            if tags is not None:
+                tag_string = ""
+                for tag in tags:
+                    tag_string = tag_string + f"{tag['name']}, "
+                data["tags"] = tag_string
+
+            return data
+
+        def insert_facts(data):
+            # Fetch the facts linked to this conversation
+            cursor.execute(
+                """
+                SELECT facts.text
+                    FROM facts
+                    JOIN user_facts ON facts.id = user_facts.fact_id
+                    WHERE user_facts.user_id = (?) AND facts.source_conversation_id = (?)
+            """,
+                (user_id, conversation_id),
+            )
+            facts = cursor.fetchall()
+            data["facts"] = []
+            for fact in facts:
+                data["facts"].append(fact["text"])
+
+            return data
+
         with self.connect() as connection:
             cursor = connection.cursor()
 
@@ -255,35 +309,15 @@ class DatabaseHandler:
             if conversation is None:
                 return None
 
-            # 2. Fetch the tag_ids linked to this conversation
-            cursor.execute(
-                "SELECT tag_id FROM conversation_tags WHERE conversation_id = (?) ORDER BY tag_id",
-                (conversation_id,),
-            )
-            tag_ids = [row[0] for row in cursor.fetchall()]
-
-            # 3. Resolve the actual tag rows
-            tags = None
-            if tag_ids:
-                placeholders = ",".join("?" * len(tag_ids))
-                cursor.execute(
-                    f"SELECT * FROM tags WHERE id IN ({placeholders}) ORDER BY id",
-                    tag_ids,
-                )
-                tags = cursor.fetchall()
-
-            # 4. Return conversation + its tags
             data = {}
             for key in conversation.keys():
                 data[key] = conversation[key]
-            if tags is not None:
-                tag_string = ""
-                for tag in tags:
-                    tag_string = tag_string + f"{tag['name']}, "
-                data["tags"] = tag_string
 
             if data["content"] == None:
                 data["content"] = ""
+
+            data = insert_facts(data)
+            data = insert_tags(data)
             return data
 
     def check_conversation_status(self, conversation_id: str):
