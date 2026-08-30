@@ -1105,6 +1105,28 @@
                         <path d="M12 5v14M5 12h14" />
                     </svg>
                 </button>
+
+                <button
+                    class="icon-button settings"
+                    id="settings-button"
+                    type="button"
+                    title="Settings"
+                    aria-label="Open settings"
+                >
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33 1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82 1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+                        />
+                    </svg>
+                </button>
             </header>
 
             <main class="message-window" id="message-window">
@@ -1221,6 +1243,84 @@
                     </button>
                 </form>
             </footer>
+        </div>
+
+        <!-- Settings popup -->
+        <div class="settings-backdrop hidden" id="settings-backdrop">
+            <div class="settings-window" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+                <div class="settings-header">
+                    <span class="settings-title" id="settings-title">Settings</span>
+                    <button
+                        class="settings-close-button"
+                        id="settings-close-button"
+                        type="button"
+                        aria-label="Close settings"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                        >
+                            <path d="M18 6 6 18" />
+                            <path d="m6 6 12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="settings-body">
+                    <section class="settings-section">
+                        <h3>Appearance</h3>
+                        <div class="settings-field">
+                            <label for="settings-theme">Theme</label>
+                            <select id="settings-theme">
+                                <option value="dark">Dark</option>
+                                <option value="light">Light</option>
+                            </select>
+                        </div>
+                        <div class="settings-field">
+                            <label for="settings-font-size">Font size</label>
+                            <select id="settings-font-size">
+                                <option value="small">Small</option>
+                                <option value="medium">Medium</option>
+                                <option value="large">Large</option>
+                            </select>
+                        </div>
+                        <div class="settings-field">
+                            <label for="settings-compact">Compact mode</label>
+                            <input type="checkbox" id="settings-compact" />
+                        </div>
+                    </section>
+                    <section class="settings-section">
+                        <h3>Behavior</h3>
+                        <div class="settings-field">
+                            <label for="settings-auto-scroll">Auto-scroll to bottom</label>
+                            <input type="checkbox" id="settings-auto-scroll" checked />
+                        </div>
+                        <div class="settings-field">
+                            <label for="settings-sound">Sound effects</label>
+                            <input type="checkbox" id="settings-sound" />
+                        </div>
+                    </section>
+                    <section class="settings-section">
+                        <h3>Data</h3>
+                        <div class="settings-field">
+                            <label for="settings-storage">Local storage</label>
+                            <select id="settings-storage">
+                                <option value="enabled">Enabled</option>
+                                <option value="disabled">Disabled</option>
+                            </select>
+                        </div>
+                        <div class="settings-field settings-hint">
+                            <span class="settings-hint">Clearing local data cannot be undone.</span>
+                        </div>
+                    </section>
+                </div>
+                <div class="settings-footer">
+                    <button class="settings-button-secondary" type="button">Reset</button>
+                    <button class="settings-button-primary" type="button">Save</button>
+                </div>
+            </div>
         </div>
 
         <script>
@@ -2379,7 +2479,7 @@
                     if (requestChatId === state.chatId) {
                         appendMessage(
                             "system",
-                            `Could not reach the backend at ${CONFIG.apiBaseUrl}.\n(${error.message})`,
+                            `Could not reach the backend at ${CONFIG.apiBaseUrl}. Make sure your FastAPI Server is Running.\n(${error.message})`,
                         );
                     }
                 } finally {
