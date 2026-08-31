@@ -2203,22 +2203,20 @@
             function startServerSideEventListener() {
                 const eventSource = new EventSource(CONFIG.apiBaseUrl + "events");
 
-                eventSource.addEventListener("status_update", (e) => {
-                    console.log(e)
+                eventSource.addEventListener("chat_update", (e) => {
                     const { chat_id } = JSON.parse(e.data);
                     if (String(chat_id) === String(state.chatId) && !state.editMode) {
                         loadChat();
                     }
                 });
 
+                eventSource.addEventListener("state_change", (e) => {
+                  pollServerStatus();
+                })
+
                 eventSource.onerror = () => {
                     console.warn("SSE disconnected; EventSource will auto-retry.");
                 };
-            }
-
-            function startStatusPolling() {
-                pollServerStatus();
-                setInterval(pollServerStatus, CONFIG.statusPollIntervalMs);
             }
 
             /**
@@ -2753,7 +2751,7 @@
             loadChat();
             dom.messageInput.focus();
             refreshChatList();
-            startStatusPolling();
+            pollServerStatus();
             startServerSideEventListener();
         </script>
     </body>

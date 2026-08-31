@@ -28,6 +28,7 @@ class DatabaseHandler:
                 id TEXT PRIMARY KEY,
                 title TEXT,
                 content TEXT,
+                last_processed_index INTEGER DEFAULT 0,
                 data_format INTEGER,
                 system_prompt TEXT,
                 summary TEXT,
@@ -166,7 +167,6 @@ class DatabaseHandler:
             )
 
             rows = cursor.fetchall()
-            print(rows)
             return [row[0] for row in rows]
 
     def update_conversation(self, conversation_id: str, data):
@@ -348,13 +348,30 @@ class DatabaseHandler:
             ids = [{"id": row[0], "title": row[1]} for row in rows]
             return ids
 
-    def get_chat_title(self, chat_id) -> str | None:
+    def get_chat_title(self, chat_id: str) -> str | None:
         with self.connect() as connection:
             cursor = connection.cursor()
 
             cursor.execute("SELECT title FROM conversations WHERE id = (?)", (chat_id,))
             title = cursor.fetchone()[0]
             return title
+
+    def get_last_processed_index(self, chat_id: str):
+        with self.connect() as connection:
+            cursor = connection.cursor()
+            cursor.execute(
+                "SELECT last_processed_index FROM conversations WHERE id = ?", (chat_id,)
+            )
+            index = cursor.fetchone()[0]
+            return index
+
+    def set_last_processed_index(self, chat_id: str, index: int):
+        with self.connect() as connection:
+            cursor = connection.cursor()
+            cursor.execute(
+                "UPDATE conversation SET last_processed_index = (?) WHERE id = (?)",
+                (index, chat_id),
+            )
 
     def delete_all_chats(self):
         with self.connect() as connection:

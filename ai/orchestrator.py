@@ -9,6 +9,7 @@ import databasehandler
 from ai import chatformatter
 from ai.kobold import KoboldError, KoboldOfflineError, koboldInstance
 from ai.tools import tools as tool_list
+from signals import emit_signal
 
 
 class OrchestratorState(Enum):
@@ -30,7 +31,7 @@ class StateManager:
                 return
             self._status = status
             self._message = message
-            print(f"State -> {status.value}: {message}", flush=True)
+            emit_signal("state_change")
 
     def _format_message(self, message, id):
         if id:
@@ -155,11 +156,28 @@ def analyzeConversation(chat_id: str, user_id: int = 0):
             fact_list = json.loads(facts)
             for fact in fact_list:
                 db.save_fact(user_id, chat_id, fact)
-            print("Current facts: " + str(db.get_user_facts(user_id)))
         except JSONDecodeError:
             print(f"ERROR: Facts were not json parsable: {facts}")
 
         db.update_conversation(chat_id, {"processedAnalysis": True})
+
+    state.ready()
+
+
+def cleanupFacts(user_id: int = 0):
+    state.working("Cleaning up user facts")
+    db = databasehandler.DatabaseHandler()
+    existing_facts = db.get_user_facts(user_id)
+    prompt = config.readSetting("prompts.cleanup_facts")
+    prompt = prompt.replace("{user_facts}", json.dumps(existing_facts))
+    new_facts = getOnlyAnswer(prompt)
+    if new_facts:
+        try:
+            fact_list = json.loads(new_facts)
+            for fact in fact_list:
+                db.save_fact(user_id, "NO_CHAT_ID", fact)
+        except JSONDecodeError:
+            print(f"ERROR: Facts were not json parsable: {new_facts}")
 
     state.ready()
 
