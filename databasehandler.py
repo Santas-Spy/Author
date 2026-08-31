@@ -73,7 +73,7 @@ class DatabaseHandler:
                 CREATE TABLE IF NOT EXISTS facts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     text TEXT NOT NULL,
-                    source_conversation_id INTEGER NOT NULL,
+                    source_conversation_id TEXT,
 
                     FOREIGN KEY (source_conversation_id)
                         REFERENCES conversations(id)
@@ -147,10 +147,12 @@ class DatabaseHandler:
     def delete_fact(self, fact):
         with self.connect() as connection:
             cursor = connection.cursor()
+            cursor.execute("DELETE FROM facts WHERE text = ?", (fact,))
 
-            cursor.execute("SELECT id FROM facts WHERE text = ?", (fact,))
-            id = cursor.fetchone()[0]
-            cursor.execute("DELETE FROM facts WHERE id = ?", (id,))
+    def delete_all_facts(self):
+        with self.connect() as connection:
+            cursor = connection.cursor()
+            cursor.execute("DELETE FROM facts")
 
     def get_user_facts(self, user_id):
         with self.connect() as connection:
@@ -288,7 +290,7 @@ class DatabaseHandler:
                 SELECT facts.text
                     FROM facts
                     JOIN user_facts ON facts.id = user_facts.fact_id
-                    WHERE user_facts.user_id = (?) AND facts.source_conversation_id = (?)
+                    WHERE user_facts.user_id = (?) AND (facts.source_conversation_id = (?) OR facts.source_conversation_id IS NULL)
             """,
                 (user_id, conversation_id),
             )

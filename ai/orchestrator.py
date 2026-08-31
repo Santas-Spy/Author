@@ -174,8 +174,9 @@ def cleanupFacts(user_id: int = 0):
     if new_facts:
         try:
             fact_list = json.loads(new_facts)
+            db.delete_all_facts()
             for fact in fact_list:
-                db.save_fact(user_id, "NO_CHAT_ID", fact)
+                db.save_fact(user_id, None, fact)
         except JSONDecodeError:
             print(f"ERROR: Facts were not json parsable: {new_facts}")
 
@@ -276,6 +277,8 @@ def sendUserMessage(
     user_facts = db.get_user_facts(user_id)
     if user_facts is not None:
         prompt = prompt.replace("{user_facts}", json.dumps(user_facts))
+    else:
+        prompt = prompt.replace("{user_facts}", "[]")
 
     current_date = datetime.datetime.now().strftime("%c")
     prompt = prompt.replace("{date}", current_date)
@@ -323,54 +326,59 @@ def processChatsInBackground():
     if state.get_state()["state"] != OrchestratorState.READY:
         return
 
-    db = databasehandler.DatabaseHandler()
-    chat_info = db.list_chat_ids()
-    jobs = {
-        "title": [generateTitle, []],
-        "summary": [summarizeConversation, []],
-        "tags": [catagorizeConversation, []],
-        "analyze": [analyzeConversation, []],
-    }
-    try:
-        for data in chat_info:
-            id = data["id"]
-            flags = db.check_conversation_status(id)
-            if flags["hasText"]:
+    def run_job():
+
+        db = databasehandler.DatabaseHandler()
+        chat_info = db.list_chat_ids()
+        jobs = {
+            "title": [generateTitle, []],
+            "summary": [summarizeConversation, []],
+            "tags": [catagorizeConversation, []],
+            "analyze": [analyzeConversation, []],
+        }
+        try:
+            for data in chat_info:
+                id = data["id"]
+                flags = db.check_conversation_status(id)
+                if flags["hasText"]:
+                    if state.is_canceled():
+                        break
+                    if flags["processedTitle"] == 0:
+                        jobs["title"][1].append(id)
+
+                    if state.is_canceled():
+                        break
+                    if flags["processedSummary"] == 0:
+                        jobs["summary"][1].append(id)
+
+                    if state.is_canceled():
+                        break
+                    if flags["processedTags"] == 0:
+                        jobs["tags"][1].append(id)
+
+                    if state.is_canceled():
+                        break
+                    if flags["processedAnalysis"] == 0:
+                        jobs["analyze"][1].append(id)
+
+            # Iterate through the processing jobs that need to be done
+            for job in jobs:
                 if state.is_canceled():
                     break
-                if flags["processedTitle"] == 0:
-                    jobs["title"][1].append(id)
+                # Go through each job type in order
+                for id in jobs[job][1]:
+                    if state.is_canceled():
+                        break
+                    print(f"Running {job} job for chat {id}")
+                    jobs[job][0](id)  # Call the job's function with the chat id
 
-                if state.is_canceled():
-                    break
-                if flags["processedSummary"] == 0:
-                    jobs["summary"][1].append(id)
+        except KoboldError:
+            print("Kobold instance was not running. Could not process chats")
 
-                if state.is_canceled():
-                    break
-                if flags["processedTags"] == 0:
-                    jobs["tags"][1].append(id)
+        state.clear_cancel()
 
-                if state.is_canceled():
-                    break
-                if flags["processedAnalysis"] == 0:
-                    jobs["analyze"][1].append(id)
-
-        # Iterate through the processing jobs that need to be done
-        for job in jobs:
-            if state.is_canceled():
-                break
-            # Go through each job type in order
-            for id in jobs[job][1]:
-                if state.is_canceled():
-                    break
-                print(f"Running {job} job for chat {id}")
-                jobs[job][0](id)  # Call the job's function with the chat id
-
-    except KoboldError:
-        print("Kobold instance was not running. Could not process chats")
-
-    state.clear_cancel()
+    thread = threading.Thread(target=run_job)
+    thread.run()
 
 
 def update_conversation(data):

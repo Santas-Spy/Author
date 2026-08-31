@@ -7,6 +7,7 @@ from typing_extensions import AsyncGenerator
 # Event Setup
 _event_lock = threading.Lock()
 _pending_events: list[dict] = []
+_shutdown_event = threading.Event()
 
 
 def emit_signal(signal_type: str, payload: dict | None = None):
@@ -15,8 +16,12 @@ def emit_signal(signal_type: str, payload: dict | None = None):
         _pending_events.append({"type": signal_type, "data": payload or {}})
 
 
+def close_all_streams():
+    _shutdown_event.set()
+
+
 async def generate() -> AsyncGenerator[str, None]:
-    while True:
+    while not _shutdown_event.is_set():
         with _event_lock:
             signals = list(_pending_events)
             _pending_events.clear()

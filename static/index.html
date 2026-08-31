@@ -2284,6 +2284,7 @@
                         );
                     }
                 }
+                dom.messageList.scrollTop = dom.messageList.scrollHeight;
                 dom.messageInput.focus();
             }
 
@@ -2303,6 +2304,8 @@
                 if (!continueMode) {
                     appendMessage("user", message);
                 }
+                dom.messageList.scrollTop = dom.messageList.scrollHeight;
+
 
                 dom.messageInput.value = "";
                 resizeComposerInput();

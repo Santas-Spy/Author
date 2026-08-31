@@ -80,15 +80,21 @@ def run_post_processing(chat_id: str):
     signals.emit_signal("chat_update", {"chat_id": chat_id})
 
 
-def check_run_background_processing():
-    thread = threading.Thread(target=orchestrator.processChatsInBackground)
-    thread.start()
+async def check_run_background_processing():
+    while True:
+        orchestrator.processChatsInBackground()
+        await asyncio.sleep(10)
 
 
 @app.on_event("startup")
 def startup_event():
     koboldInstance.setEndpoint(config.readSetting("kobold.url"))
-    check_run_background_processing()
+    asyncio.create_task(check_run_background_processing())
+
+
+@app.on_event("shutdown")
+def on_shutdown():
+    signals.close_all_streams()
 
 
 @app.post("/api/chat")
