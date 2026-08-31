@@ -2214,7 +2214,11 @@
 
                 eventSource.addEventListener("state_change", (e) => {
                   pollServerStatus();
-                })
+                });
+
+                eventSource.addEventListener("title_update", (e) => {
+                  refreshChatTitles();
+                });
 
                 eventSource.onerror = () => {
                     console.warn("SSE disconnected; EventSource will auto-retry.");

@@ -107,6 +107,7 @@ def getOnlyAnswer(prompt) -> str | None:
         response = koboldInstance.generate(prompt=prompt, stream=False, discard_incomplete=True)
 
         if response is None:
+            print("Response was cancelled!")
             return response
 
         split_response = chatformatter.seperateThinking(response)

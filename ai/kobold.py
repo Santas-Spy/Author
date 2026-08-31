@@ -94,6 +94,7 @@ class KoboldInstance:
     def generateWithTools(
         self, messages: list[Dict[str, Any]], tools: list[dict[str, Any]], tool_choice="auto"
     ) -> Iterator[str]:
+        self._cancel_event.clear()
         payload = {
             "messages": messages,
             "tools": tools,
@@ -139,7 +140,7 @@ class KoboldInstance:
             payload.update(extra)
 
         logging.logToFile(prompt, tag="[PROMPT INPUT]")
-
+        self._cancel_event.clear()
         response = self._request(
             "POST",
             "/api/extra/generate/stream",
@@ -155,7 +156,9 @@ class KoboldInstance:
                 if discard_incomplete:
                     return None
                 else:
-                    return result_text  # Return partial text
+                    return result_text
+            else:
+                return result_text
 
     def getMaxContext(self) -> int:
         """Return the maximum context length reported by the server."""
