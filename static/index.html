@@ -10,6 +10,7 @@
             href="https://fonts.googleapis.com/css2?family=Cantarell:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap"
             rel="stylesheet"
         />
+        <link rel="icon" type="image/png" href ="/static/assets/favicon.png" />
         <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.9/purify.min.js"></script>
         <style>
@@ -2199,6 +2200,22 @@
                 }
             }
 
+            function startServerSideEventListener() {
+                const eventSource = new EventSource(CONFIG.apiBaseUrl + "events");
+
+                eventSource.addEventListener("status_update", (e) => {
+                    console.log(e)
+                    const { chat_id } = JSON.parse(e.data);
+                    if (String(chat_id) === String(state.chatId) && !state.editMode) {
+                        loadChat();
+                    }
+                });
+
+                eventSource.onerror = () => {
+                    console.warn("SSE disconnected; EventSource will auto-retry.");
+                };
+            }
+
             function startStatusPolling() {
                 pollServerStatus();
                 setInterval(pollServerStatus, CONFIG.statusPollIntervalMs);
@@ -2737,6 +2754,7 @@
             dom.messageInput.focus();
             refreshChatList();
             startStatusPolling();
+            startServerSideEventListener();
         </script>
     </body>
 </html>
