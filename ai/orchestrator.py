@@ -105,6 +105,10 @@ def loadConversation(chat_id: str, prompt_name: str):
 def getOnlyAnswer(prompt) -> str | None:
     try:
         response = koboldInstance.generate(prompt=prompt, stream=False, discard_incomplete=True)
+
+        if response is None:
+            return response
+
         split_response = chatformatter.seperateThinking(response)
         answer = split_response["response"]
         return answer
@@ -134,6 +138,7 @@ def summarizeConversation(chat_id: str):
         if summary:
             db.update_conversation(chat_id, {"summary": summary})
     db.update_conversation(chat_id, {"processedSummary": True})
+    emit_signal("chat_update", {"chat_id": chat_id})
     state.ready()
 
 
@@ -160,7 +165,7 @@ def analyzeConversation(chat_id: str, user_id: int = 0):
             print(f"ERROR: Facts were not json parsable: {facts}")
 
         db.update_conversation(chat_id, {"processedAnalysis": True})
-
+    emit_signal("chat_update", {"chat_id": chat_id})
     state.ready()
 
 
@@ -220,6 +225,7 @@ def catagorizeConversation(chat_id: str):
         tags = [answer] if answer else "[]"
 
     db.update_conversation(chat_id, {"tags": tags, "processedTags": True})
+    emit_signal("chat_update", {"chat_id": chat_id})
     state.ready()
 
 
@@ -237,6 +243,7 @@ def generateTitle(chat_id: str):
         title = title.strip()
         db = databasehandler.DatabaseHandler()
         db.update_conversation(chat_id, {"title": title, "processedTitle": True})
+    emit_signal("title_update", {"chat_id": chat_id})
     state.ready()
 
 
@@ -302,10 +309,12 @@ def sendUserMessage(
         #    tool_list.call_tool(tool)
         # streamed_response = response["content"]
     else:
-        for token in koboldInstance.generate(message, stream=True):
-            state.working("Writing in chat {title}", chat_id=chat_id)
-            streamed_response += token
-            yield {"type": "token", "chat_id": str(chat_id), "token": token}
+        stream = koboldInstance.generate(message, stream=True)
+        if stream:
+            for token in stream:
+                state.working("Writing in chat {title}", chat_id=chat_id)
+                streamed_response += token
+                yield {"type": "token", "chat_id": str(chat_id), "token": token}
     split_response = chatformatter.seperateThinking(streamed_response)
     chatText = chatText + split_response["response"]
 
@@ -317,6 +326,7 @@ def sendUserMessage(
             "processedTags": False,
         },
     )
+
     state.ready()
 
     yield {"type": "complete", "chat_id": str(chat_id), "text": chatText}
@@ -378,7 +388,7 @@ def processChatsInBackground():
         state.clear_cancel()
 
     thread = threading.Thread(target=run_job)
-    thread.run()
+    thread.start()
 
 
 def update_conversation(data):

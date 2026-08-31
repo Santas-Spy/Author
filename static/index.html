@@ -2060,6 +2060,7 @@
                 dom.editTextarea.value = state.rawTranscript;
                 dom.messageList.classList.add("hidden");
                 dom.editTextarea.classList.remove("hidden");
+                dom.sendButton.classList.add("hidden");
 
                 dom.editModeButton.innerHTML = ICONS.save;
                 dom.editModeButton.title = "Save and exit edit mode";
@@ -2111,6 +2112,7 @@
 
                 dom.editTextarea.classList.add("hidden");
                 dom.messageList.classList.remove("hidden");
+                dom.sendButton.classList.remove("hidden");
 
                 dom.editModeButton.innerHTML = ICONS.edit;
                 dom.editModeButton.title = "Edit raw chat log";

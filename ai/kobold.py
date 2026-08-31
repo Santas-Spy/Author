@@ -80,7 +80,6 @@ class KoboldInstance:
 
             if self._cancel_event.is_set():
                 print("CANCELLING GENERATION")
-                self._cancel_event.clear()
                 break
 
             decoded_line = line.decode("utf-8")
@@ -91,7 +90,6 @@ class KoboldInstance:
             except json.JSONDecodeError:
                 continue
             yield str(data.get(text_field, ""))
-        self._cancel_event.clear()
 
     def generateWithTools(
         self, messages: list[Dict[str, Any]], tools: list[dict[str, Any]], tool_choice="auto"
@@ -124,7 +122,7 @@ class KoboldInstance:
         extra: Optional[Dict[str, Any]] = None,
         stream: bool = False,
         discard_incomplete: bool = True,
-    ) -> Iterator[str] | str:
+    ) -> Iterator[str] | str | None:
         """Send a prompt to the streaming generation endpoint and yield tokens as they arrive."""
         payload: Dict[str, Any] = {
             "prompt": prompt,
@@ -151,7 +149,13 @@ class KoboldInstance:
         if stream:
             return self._iter_stream(response, "token")
         else:
-            return "".join(self._iter_stream(response, "token"))
+            tokens = list(self._iter_stream(response, "token"))
+            result_text = "".join(tokens)
+            if self._cancel_event.is_set():
+                if discard_incomplete:
+                    return None
+                else:
+                    return result_text  # Return partial text
 
     def getMaxContext(self) -> int:
         """Return the maximum context length reported by the server."""

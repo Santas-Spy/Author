@@ -32,3 +32,4 @@ async def generate() -> AsyncGenerator[str, None]:
                 yield f"data: {json.dumps(signal['data'])}\n\n"
 
         await asyncio.sleep(1)
+    print("Closing Signal Emitter")
