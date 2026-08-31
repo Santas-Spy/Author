@@ -153,7 +153,10 @@ def analyzeConversation(chat_id: str, user_id: int = 0):
 
     db = databasehandler.DatabaseHandler()
     user_facts = db.get_user_facts(user_id)
-    formatted_prompt.replace("{user_facts}", json.dumps(user_facts))
+    if user_facts is not None:
+        formatted_prompt = formatted_prompt.replace("{user_facts}", json.dumps(user_facts))
+    else:
+        formatted_prompt = formatted_prompt.replace("{user_facts}", "[]")
 
     # Generate a summary
     facts = getOnlyAnswer(formatted_prompt)
@@ -175,7 +178,12 @@ def cleanupFacts(user_id: int = 0):
     db = databasehandler.DatabaseHandler()
     existing_facts = db.get_user_facts(user_id)
     prompt = config.readSetting("prompts.cleanup_facts")
-    prompt = prompt.replace("{user_facts}", json.dumps(existing_facts))
+
+    if existing_facts is not None:
+        prompt = prompt.replace("{user_facts}", json.dumps(existing_facts))
+    else:
+        return
+
     new_facts = getOnlyAnswer(prompt)
     if new_facts:
         try:
