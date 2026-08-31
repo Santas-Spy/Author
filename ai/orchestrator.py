@@ -146,7 +146,6 @@ def analyzeConversation(chat_id: str, user_id: int = 0):
 
     db = databasehandler.DatabaseHandler()
     user_facts = db.get_user_facts(user_id)
-    print(user_facts)
     formatted_prompt.replace("{user_facts}", json.dumps(user_facts))
 
     # Generate a summary
