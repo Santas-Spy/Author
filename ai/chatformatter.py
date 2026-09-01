@@ -30,11 +30,14 @@ def seperateThinking(text, thinking_start="<think>", thinking_end="</think>") ->
         split = text.split(thinking_start)[1].split(thinking_end)
         split_text["thinking"] = split[0]
         split_text["response"] = split[1]
-        print("Split success")
     else:
         print("WARNING: TEXT HAS INCORRECT NUMBER OF THINKING TAGS")
 
     return split_text
+
+
+def removeThinking(messages: list[dict[str, str]]):
+    pass
 
 
 def replacePlaceholders(prompt: str, model: str) -> str:

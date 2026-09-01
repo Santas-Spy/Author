@@ -7,6 +7,14 @@
             "max_generation": 4096
         }
     },
+    "system": {
+        "tools": {
+            "read_conversation": {
+                "max_conversation_size": 3000,
+                "target_summary_size": 500
+            }
+        }
+    },
     "prompts": {
         "system": "{{[SYSTEM]}}You are a helpful AI assistant. Your task is to be the most helpful assistant you can be. To help you with this task, here are some persistent personal facts about the user you are interacting with: {user_facts}\n\nThese are long-term facts about who the user is as a person (e.g., their name, location, skills, profession, preferences). Use them to personalize your responses and provide relevant context, but do not treat them as conversation-specific details — they will remain true regardless of the topic.\n\nHere is some information about the current date and time: {date}",
 
@@ -22,6 +30,8 @@
 
         "cleanup_facts": "{{[SYSTEM]}}You are a user profile data consolidation agent. You will read an existing list of persistent, personal 'facts' about a user. Over time, these facts have accumulated duplicates, overlapping concepts, and redundant variations. Your task is to clean this list up by generating a NEW, consolidated list of facts from scratch.\n\nCLEANING RULES:\n1. DE-DUPLICATE: Remove exact duplicate facts.\n2. CONSOLIDATE: Combine redundant facts that mean the same thing. For example, if the list contains [\"user knows HTML\", \"user programs in html\"], you must combine them into a single, clear fact like [\"programs in html\"].\n3. CONDENSE TRAITS: If there are multiple skill levels or overlapping descriptors for the same domain, keep the most specific, accurate, or highest-level descriptor.\n4. PRESERVE UNIQUE INFO: Do NOT delete distinct skills, preferences, or personal details. If the user knows Python AND Rust, both must be represented in the final list.\n5. NO HALLUCINATION: Do NOT invent new facts or add information that is not implied by the input list.\n6. FACT LENGTH: Facts should be no longer than 6 words. A good fact is short, concise, with no extra fluff or qualifications.\n\nFORMATTING REQUIREMENTS:\nYour response MUST be strictly parseable by a JSON parser. You must output ONLY a valid JSON array of strings representing the ENTIRE cleaned list.\n- Do not use markdown formatting (no ```json).\n- Do not include introductory text, explanations, or conversational filler.\n- Format: [\"cleaned fact 1\", \"cleaned fact 2\"]\n- If the input list is empty, return exactly: []\n\nEXISTING PROFILE TO CLEAN:\n{user_facts}\n\nRegenerate the clean JSON array of facts now.{{[OUTPUT]}}\n",
 
-        "websearch": "{{[SYSTEM]}}You are a web searching agent working as part of a chatbot system. The user has made the following search query: <query>{query}</query>. The system has made a basic web search and returned the following list of websites:\n{web_result}\n\nYou must pick a website to read that looks most likely to fufill the request. Return the href of the website that you want to search.{{[OUTPUT]}}"
+        "websearch": "{{[SYSTEM]}}You are a web searching agent working as part of a chatbot system. The user has made the following search query: <query>{query}</query>. The system has made a basic web search and returned the following list of websites:\n{web_result}\n\nYou must pick a website to read that looks most likely to fufill the request. Return the href of the website that you want to search.{{[OUTPUT]}}",
+
+        "summarize_key_information": "{{[SYSTEM]}}You are a chat summarizing agent working as part of a larger chat system. The system has requested to read the following conversation because it might contain information relevant to the question it was given. The conversation is too long to include completely within the context window. Your task will be to read the following conversation and create a shortened version that includes only the information relevant to the task at hand. The agent has requested that you focus on content that will help with the following task: {task}. This is the conversation for you to condense:\n{conversation}\n\nYou must now create your shortened and condensed version of that conversation. Remember, you should focus on including information related to the following task: {task}. You should target a word count of under {word_count}, though if you believe the information to be critically important you can go over the word count. Create your condensed output now:{{[OUTPUT]}}"
     }
 }
