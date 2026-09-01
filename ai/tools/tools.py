@@ -8,6 +8,7 @@ tools = [websearch.get_tool()]
 
 def call_tool(tool):
     tool_name = tool["function"]["name"]
+    print(f"calling tool: {tool_name}")
     if tool_name == "search_web":
         request = json.loads(tool["function"]["arguments"])
         query = request["query"]

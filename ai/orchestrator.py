@@ -308,15 +308,16 @@ def sendUserMessage(
     messages = chatformatter.split_conversation(message)
     streamed_response = ""
     if use_tools:
-        for token in koboldInstance.generateWithTools(messages, tools=tool_list.tools):
-            streamed_response += token
-            print(token)
-            yield {"type": "token", "chat_id": str(chat_id), "token": token}
-        # response = koboldInstance.generateWithTools(messages, tools=tool_list.tools)
-        # response = response.json()["choices"][0]["message"]
-        # for tool in response["tool_calls"]:
-        #    tool_list.call_tool(tool)
-        # streamed_response = response["content"]
+        for token in koboldInstance.generateWithTools(messages, stream=True, tools=tool_list.tools):
+            if token["type"] == "content":
+                text = token["token"]
+                streamed_response += text
+                yield {"type": "token", "chat_id": str(chat_id), "token": text}
+            if token["type"] == "tool_call":
+                print(f"Got a toolcall: {token}")
+                toolcall = token["tool_call"]
+                tool_list.call_tool(toolcall)
+
     else:
         stream = koboldInstance.generate(message, stream=True)
         if stream:
@@ -342,6 +343,7 @@ def sendUserMessage(
 
 
 def processChatsInBackground():
+    return  # Disable for now
     if state.get_state()["state"] != OrchestratorState.READY:
         return
 
