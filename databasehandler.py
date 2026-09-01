@@ -290,14 +290,29 @@ class DatabaseHandler:
                 SELECT facts.text
                     FROM facts
                     JOIN user_facts ON facts.id = user_facts.fact_id
-                    WHERE user_facts.user_id = (?) AND (facts.source_conversation_id = (?) OR facts.source_conversation_id IS NULL)
+                    WHERE user_facts.user_id = (?) AND facts.source_conversation_id = (?)
             """,
                 (user_id, conversation_id),
             )
             facts = cursor.fetchall()
-            data["facts"] = []
+            data["Chat Specific Facts"] = []
             for fact in facts:
-                data["facts"].append(fact["text"])
+                data["Chat Specific Facts"].append(fact["text"])
+
+            # Fetch generic facts not linked to any conversation
+            cursor.execute(
+                """
+                SELECT facts.text
+                    FROM facts
+                    JOIN user_facts ON facts.id = user_facts.fact_id
+                    WHERE user_facts.user_id = (?) AND facts.source_conversation_id IS NULL
+            """,
+                (user_id,),
+            )
+            facts = cursor.fetchall()
+            data["Generic Facts"] = []
+            for fact in facts:
+                data["Generic Facts"].append(fact["text"])
 
             return data
 
