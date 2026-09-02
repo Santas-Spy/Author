@@ -277,12 +277,14 @@ def sendUserMessage(
     if user_message != None and user_message != "":
         user_message = chatformatter.cleanPlaceholders(user_message)
         chatText = chatText + "{{[INPUT]}}" + user_message + "{{[OUTPUT]}}"
-        if force_thinking:
-            chatText = chatText + "<think>\nHere's a Thinking Process:\n"
         db.update_conversation(chat_id, {"content": chatText})
 
     if user_message == None or user_message == "":
         use_tools = False  # Do not allow for tool usage if message is a continuation
+
+    if force_thinking and not use_tools:
+        chatText = chatText + "<think>\nHere's a Thinking Process:\n"
+        db.update_conversation(chat_id, {"content": chatText})
 
     # Fill in placeholders
     user_facts = db.get_user_facts(user_id)
@@ -304,14 +306,30 @@ def sendUserMessage(
     if use_tools:
         pending_tools = []
         messages = chatformatter.split_conversation(message)
+        messages = chatformatter.strip_previous_thinking(messages)
+        available_tools = tool_list.tools
         while True:
             # Generate Text
-            for token in koboldInstance.generateWithTools(messages, stream=True, tools=tool_list.tools):
+            previous_token_type = None
+            for token in koboldInstance.generateWithTools(messages, stream=True, tools=available_tools):
                 if token["type"] == "content":
                     state.working("Writing in chat {title}", chat_id=chat_id)
                     text = token["token"]
+                    if previous_token_type == "reasoning_content":
+                        streamed_response += "</think>"
                     streamed_response += text
+                    previous_token_type = "content"
                     yield {"type": "token", "chat_id": str(chat_id), "token": text}
+
+                if token["type"] == "reasoning_content":
+                    state.working("Planning response in chat {title}", chat_id=chat_id)
+                    text = token["token"]
+                    if previous_token_type == None:
+                        streamed_response += "<think>"
+                    streamed_response += text
+                    previous_token_type = "reasoning_content"
+                    yield {"type": "token", "chat_id": str(chat_id), "token": text}
+
                 if token["type"] == "tool_call":
                     print(f"Got a toolcall: {token}")
                     state.working("Using tools in chat {title}", chat_id=chat_id)
@@ -324,13 +342,15 @@ def sendUserMessage(
 
             for tc in pending_tools:
                 result = tool_list.call_tool(tc)
+                tool_response = result["tool_response"]
+                available_tools = result["next_tools"]
+
                 tool_call_message = {
                     "role": "assistant",
                     "content": streamed_response,
                     "tool_calls": tc,
                 }
                 messages.append(tool_call_message)
-
                 tool_call_result = {"role": "tool", "tool_call_id": tc["id"], "content": result}
                 messages.append(tool_call_result)
             pending_tools.clear()
@@ -341,15 +361,15 @@ def sendUserMessage(
                 state.working("Writing in chat {title}", chat_id=chat_id)
                 streamed_response += token
                 yield {"type": "token", "chat_id": str(chat_id), "token": token}
-    split_response = chatformatter.seperateThinking(streamed_response)
-    chatText = chatText + split_response["response"]
 
+    chatText = chatText + streamed_response
     db.update_conversation(
         chat_id,
         {
             "content": chatText,
             "processedSummary": False,
-            "processedTags": False,
+            # "processedTags": False,
+            "processedAnalysis": False,
         },
     )
 
@@ -359,6 +379,7 @@ def sendUserMessage(
 
 
 def processChatsInBackground():
+    return  # Disabled for now
     if state.get_state()["state"] != OrchestratorState.READY:
         return
 

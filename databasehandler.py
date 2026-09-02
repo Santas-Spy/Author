@@ -6,7 +6,7 @@ from uuid import uuid4
 
 
 class DatabaseHandler:
-    def __init__(self, database_name="appdata2.db"):
+    def __init__(self, database_name="appdata.db"):
         dir = "data/"
         os.makedirs(dir, exist_ok=True)
         self.database_name = f"{dir}/{database_name}"

@@ -2,18 +2,14 @@ import re
 
 
 def lfm2_5(prompt: str):
-    prompt = prompt.replace(
-        "{{[SYSTEM]}}", "<|startoftext|><|im_start|>system\n"
-    )  # <-- This assumes the system prompt is *always* first
+    prompt = prompt.replace("{{[SYSTEM]}}", "<|startoftext|><|im_start|>system\n")  # <-- This assumes the system prompt is *always* first
     prompt = prompt.replace("{{[INPUT]}}", "<|im_end|>\n<|im_start|>user\n")
     prompt = prompt.replace("{{[OUTPUT]}}", "<|im_end|>\n<|im_start|>assistant\n")
     return prompt
 
 
 def gemini(prompt: str):
-    prompt = prompt.replace(
-        "{{[SYSTEM]}}", "<|turn>system\n"
-    )  # <-- This assumes the system prompt is *always* first
+    prompt = prompt.replace("{{[SYSTEM]}}", "<|turn>system\n")  # <-- This assumes the system prompt is *always* first
     prompt = prompt.replace("{{[INPUT]}}", "<turn|>\n<|turn>user\n")
     prompt = prompt.replace("{{[OUTPUT]}}", "<|turn>model\n<|channel>thought\n *")
     return prompt
@@ -23,7 +19,7 @@ def muse(prompt: str):
     raise NotImplementedError("Muse adapter not yet created")
 
 
-def seperateThinking(text, thinking_start="<think>", thinking_end="</think>") -> dict[str, str]:
+def seperateThinking(text: str, thinking_start: str = "<think>", thinking_end: str = "</think>") -> dict[str, str]:
     # Search the text to ensure there is only one instance of <think> and </think>, otherwise things might get messy
     split_text = {"thinking": "", "response": text}
     if text.count(thinking_start) == 1 and text.count(thinking_end) == 1:
@@ -34,6 +30,27 @@ def seperateThinking(text, thinking_start="<think>", thinking_end="</think>") ->
         print("WARNING: TEXT HAS INCORRECT NUMBER OF THINKING TAGS")
 
     return split_text
+
+
+def strip_previous_thinking(
+    messages: list[dict[str, str]], keep_final: bool = True, thinking_start: str = "<think>", thinking_end: str = "</think>"
+) -> list[dict[str, str]]:
+    """
+    Removes thinking from old messages.
+    Does not remove thinking if assistant is the most recent role (good for completeion mode)
+    """
+    clean_messages = []
+    for index, message in enumerate(messages):
+        if message["role"] == "assistant":
+            if index < len(messages) - 1 or keep_final == False:  # Do not remove thinking from the final message
+                result = seperateThinking(message["content"], thinking_start=thinking_start, thinking_end=thinking_end)
+                new_message = {"role": "assistant", "content": result["response"]}
+                clean_messages.append(new_message)
+            else:
+                print("Final message was a thinking message, keeping")
+        else:
+            clean_messages.append(message)
+    return clean_messages
 
 
 def removeThinking(messages: list[dict[str, str]]):

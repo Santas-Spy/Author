@@ -7,6 +7,7 @@ from requests.exceptions import ConnectionError
 from requests.models import Response
 
 import loghandler as logging
+from ai import chatformatter
 
 
 class KoboldError(Exception):
@@ -36,7 +37,6 @@ class KoboldInstance:
         self.base_url = url.rstrip("/")
         self.timeout = timeout
         self._session = requests.Session()
-        self._cache: Dict[str, Any] = {}
         self._initialized = True
 
     def _request(
@@ -58,9 +58,7 @@ class KoboldInstance:
             response.raise_for_status()
             return response
         except ConnectionError as error:
-            raise KoboldOfflineError(
-                f"Could not connect to KoboldCpp at {url}. Make sure the server is running."
-            ) from error
+            raise KoboldOfflineError(f"Could not connect to KoboldCpp at {url}. Make sure the server is running.") from error
         except requests.HTTPError as error:
             raise KoboldError(f"KoboldCpp request failed: {error}") from error
 
@@ -131,6 +129,10 @@ class KoboldInstance:
             if "content" in delta and delta["content"] is not None:
                 yield {"type": "content", "token": delta["content"]}
 
+            # ── Thinking text token ────────────────────────────────────────────
+            if "reasoning_content" in delta and delta["reasoning_content"] is not None:
+                yield {"type": "reasoning_content", "token": delta["reasoning_content"]}
+
             # ── Tool-call fragment ──────────────────────────────────────────
             if "tool_calls" in delta:
                 for tc in delta["tool_calls"]:
@@ -179,6 +181,7 @@ class KoboldInstance:
         extra: Optional[Dict[str, Any]] = None,
         stream: bool = False,
         discard_incomplete: bool = True,
+        strip_previous_thinking=True,
     ) -> Iterator[Dict[str, Any]]:
         """
         Stream structured events from a tool-capable chat completion.
@@ -206,6 +209,8 @@ class KoboldInstance:
             json=payload,
             stream=True,
         )
+        if strip_previous_thinking:
+            messages = chatformatter.strip_previous_thinking(messages)
         if stream:
             yield from self._iter_tool_stream(response)
         else:

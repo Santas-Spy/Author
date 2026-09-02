@@ -11,7 +11,7 @@ def get_tool():
         "type": "function",
         "function": {
             "name": "read_conversation",
-            "description": "Read the contents of a previous conversation for any important information. If the contents are too long, an agent will summarize the conversation.",
+            "description": "Read the entire contents of a conversation for any finer details. If the contents are too long, an agent will summarize the conversation. You must provide the agent with guidance on what to focus on using the task_description.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -24,7 +24,7 @@ def get_tool():
                         "description": "A brief outline of what the agent should focus on when creating it's summary",
                     },
                 },
-                "required": ["conversation_id"],
+                "required": ["conversation_id", "task_description"],
             },
         },
     }
@@ -42,14 +42,10 @@ def execute(conversation_id, task) -> str:
         if raw_text is None:
             return "Conversation was empty"
 
-        if raw_text.length < config.readSetting(
-            "system.tools.read_conversation.max_conversation_length", 1500
-        ):
+        if raw_text.length < config.readSetting("system.tools.read_conversation.max_conversation_length", 1500):
             return raw_text
 
-        target_word_count = config.readSetting(
-            "system.tools.read_conversation.target_summary_size", 500
-        )
+        target_word_count = config.readSetting("system.tools.read_conversation.target_summary_size", 500)
         prompt = config.readSetting("prompts.summarize_key_information")
         prompt = prompt.replace("{task}", task)
         prompt = prompt.replace("{conversation}", raw_text)
