@@ -333,7 +333,7 @@ def sendUserMessage(
 
                 tool_call_result = {"role": "tool", "tool_call_id": tc["id"], "content": result}
                 messages.append(tool_call_result)
-
+            pending_tools.clear()
     else:
         stream = koboldInstance.generate(message, stream=True)
         if stream:
