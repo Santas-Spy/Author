@@ -356,7 +356,7 @@ class DatabaseHandler:
                 "processedTags": row[4],
             }
 
-    def list_chat_ids(self):
+    def list_chat_ids(self) -> list[dict[str, str]]:
         with self.connect() as connection:
             cursor = connection.cursor()
 
@@ -372,6 +372,13 @@ class DatabaseHandler:
             cursor.execute("SELECT title FROM conversations WHERE id = (?)", (chat_id,))
             title = cursor.fetchone()[0]
             return title
+
+    def load_all_conversations(self):
+        ids = self.list_chat_ids()
+        conversations = []
+        for id in ids:
+            conversations.append(self.load_conversation(id["id"]))
+        return conversations
 
     def get_last_processed_index(self, chat_id: str):
         with self.connect() as connection:

@@ -130,9 +130,7 @@ def summarizeConversation(chat_id: str):
     word_count = len(content["chat_text"].split(" "))
 
     if word_count > 500:
-        prompt = formatted_prompt.replace(
-            "{max_length}", str(min(word_count / 3, 150))
-        )  # Hardcoding summary to 150 words for now
+        prompt = formatted_prompt.replace("{max_length}", str(min(word_count / 3, 150)))  # Hardcoding summary to 150 words for now
 
         # Generate a summary
         summary = getOnlyAnswer(prompt)
@@ -205,9 +203,7 @@ def catagorizeConversation(chat_id: str):
     state.working("Catagorizing chat {title}", chat_id=chat_id)
     prompt = config.readSetting("prompts.catagorize_conversation")
     chat_text = db.load_conversation(chat_id)["content"]
-    chat_text = chatformatter.cleanPlaceholders(
-        chat_text
-    )  # Clean the text so model can read conversation flow
+    chat_text = chatformatter.cleanPlaceholders(chat_text)  # Clean the text so model can read conversation flow
     text = prompt.replace("{history}", chat_text)
     response = koboldInstance.sendMessage(text)
     split_response = chatformatter.seperateThinking(response)
@@ -268,11 +264,7 @@ def sendUserMessage(
 
     # Build the prompt
     prompt = config.readSetting("prompts.system")
-    if (
-        chat_data is not None
-        and "system_prompt" in chat_data
-        and chat_data["system_prompt"] is not None
-    ):
+    if chat_data is not None and "system_prompt" in chat_data and chat_data["system_prompt"] is not None:
         prompt = chat_data["system_prompt"]
     db.update_conversation(chat_id, {"system_prompt": prompt})
 
@@ -288,6 +280,9 @@ def sendUserMessage(
         if force_thinking:
             chatText = chatText + "<think>\nHere's a Thinking Process:\n"
         db.update_conversation(chat_id, {"content": chatText})
+
+    if user_message == None or user_message == "":
+        use_tools = False  # Do not allow for tool usage if message is a continuation
 
     # Fill in placeholders
     user_facts = db.get_user_facts(user_id)
@@ -305,18 +300,39 @@ def sendUserMessage(
     # Send the message, streaming tokens as they arrive
     state.working("Thinking about chat {title}", chat_id=chat_id)
     message = prompt + chatText
-    messages = chatformatter.split_conversation(message)
     streamed_response = ""
     if use_tools:
-        for token in koboldInstance.generateWithTools(messages, stream=True, tools=tool_list.tools):
-            if token["type"] == "content":
-                text = token["token"]
-                streamed_response += text
-                yield {"type": "token", "chat_id": str(chat_id), "token": text}
-            if token["type"] == "tool_call":
-                print(f"Got a toolcall: {token}")
-                toolcall = token["tool_call"]
-                tool_list.call_tool(toolcall)
+        pending_tools = []
+        messages = chatformatter.split_conversation(message)
+        while True:
+            # Generate Text
+            for token in koboldInstance.generateWithTools(messages, stream=True, tools=tool_list.tools):
+                if token["type"] == "content":
+                    state.working("Writing in chat {title}", chat_id=chat_id)
+                    text = token["token"]
+                    streamed_response += text
+                    yield {"type": "token", "chat_id": str(chat_id), "token": text}
+                if token["type"] == "tool_call":
+                    print(f"Got a toolcall: {token}")
+                    state.working("Using tools in chat {title}", chat_id=chat_id)
+                    toolcall = token["tool_call"]
+                    pending_tools.append(toolcall)
+
+            # Check if the tool list is empty
+            if not pending_tools:
+                break
+
+            for tc in pending_tools:
+                result = tool_list.call_tool(tc)
+                tool_call_message = {
+                    "role": "assistant",
+                    "content": streamed_response,
+                    "tool_calls": tc,
+                }
+                messages.append(tool_call_message)
+
+                tool_call_result = {"role": "tool", "tool_call_id": tc["id"], "content": result}
+                messages.append(tool_call_result)
 
     else:
         stream = koboldInstance.generate(message, stream=True)
@@ -343,7 +359,6 @@ def sendUserMessage(
 
 
 def processChatsInBackground():
-    return  # Disable for now
     if state.get_state()["state"] != OrchestratorState.READY:
         return
 

@@ -39,9 +39,9 @@ def get_tool():
     }
 
 
-def execute(query):
+def execute(query) -> str:
     print(f"Searching the web for: {query}. Web searches are currently disabled")
-    return
+    return "Web searches are currently disabled"
     results = DDGS().text(query, max_results=5)
     prompt = config.readSetting("prompts.websearch")
     prompt = prompt.replace("{query}", query)
