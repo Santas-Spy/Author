@@ -13,6 +13,10 @@
         <link rel="icon" type="image/png" href ="/static/assets/favicon.png" />
         <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.9/purify.min.js"></script>
+        <!-- Highlight.js CSS (theme) -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+        <!-- Highlight.js JS -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
         <style>
             :root {
                 --bg-void: #1e1e1e;
@@ -661,15 +665,22 @@
                 background: rgba(0, 0, 0, 0.32);
                 border: 1px solid rgba(255, 255, 255, 0.08);
                 border-radius: 8px;
-                padding: 10px 12px;
+                padding: 30px 12px 10px 12px;
                 overflow-x: auto;
                 margin: 0.5em 0;
+            }
+            .markdown-content pre ::selection {
+                background: rgba(255, 255, 255, 0.2);
             }
             .markdown-content pre code {
                 background: none;
                 padding: 0;
                 font-size: 0.85em;
                 line-height: 1.5;
+            }
+            .markdown-content table {
+                display: block;
+                overflow-x: auto;
             }
             .markdown-content blockquote {
                 margin: 0.5em 0;
@@ -715,6 +726,38 @@
             .markdown-content img {
                 max-width: 100%;
                 border-radius: 6px;
+            }
+            .markdown-content pre {
+                position: relative; /* For absolute positioning */
+            }
+            .code-lang-label {
+                position: absolute;
+                top: 8px;
+                left: 8px; /* Leave room for copy button */
+                font-size: 0.75em;
+                background: rgba(255, 255, 255, 0.1);
+                border: none;
+                border-radius: 4px;
+                padding: 2px 4px;
+                color: var(--text-secondary);
+                opacity: 0.7;
+            }
+            .code-copy-btn {
+                position: absolute;
+                top: 6px;
+                right: 8px;
+                background: rgba(255, 255, 255, 0.1);
+                border: none;
+                border-radius: 4px;
+                padding: 4px 8px;
+                font-size: 0.75em;
+                color: var(--text-secondary);
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+            .code-copy-btn:hover {
+                background: rgba(255, 255, 255, 0.2);
+                color: var(--text-primary);
             }
 
             /* ---------- Thinking dropdown (<think>...</think> content) ---------- */
@@ -1510,6 +1553,38 @@
                     wrapper.innerHTML = window.DOMPurify
                         ? DOMPurify.sanitize(rawHtml)
                         : rawHtml;
+                    if (window.hljs) {
+                        wrapper.querySelectorAll("pre code").forEach(codeEl => {
+                            window.hljs.highlightElement(codeEl);
+                        });
+
+                        wrapper.querySelectorAll("pre").forEach(pre => {
+                            const code = pre.querySelector("code");
+                            if (!code) return;
+
+                            // 1. Add Language Label
+                            const langClass = Array.from(code.classList).find(c => c.startsWith("language-"));
+                            const lang = langClass ? langClass.replace("language-", "") : "";
+
+                            if (lang) {
+                                const label = document.createElement("span");
+                                label.className = "code-lang-label";
+                                label.textContent = lang;
+                                pre.appendChild(label);
+                            }
+
+                            // 2. Add Copy Button
+                            const copyBtn = document.createElement("button");
+                            copyBtn.className = "code-copy-btn";
+                            copyBtn.textContent = "Copy";
+                            copyBtn.onclick = () => {
+                                navigator.clipboard.writeText(code.innerText);
+                                copyBtn.textContent = "Copied!";
+                                setTimeout(() => copyBtn.textContent = "Copy", 2000);
+                            };
+                            pre.appendChild(copyBtn);
+                        });
+                    }
                 } else {
                     // Fallback if the markdown library failed to load — still safe,
                     // just unformatted.
