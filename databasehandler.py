@@ -6,7 +6,7 @@ from uuid import uuid4
 
 
 class DatabaseHandler:
-    def __init__(self, database_name="appdata.db"):
+    def __init__(self, database_name="appdata2.db"):
         dir = "data/"
         os.makedirs(dir, exist_ok=True)
         self.database_name = f"{dir}/{database_name}"
@@ -140,9 +140,7 @@ class DatabaseHandler:
             )
             id = cursor.lastrowid
             if id is not None:
-                cursor.execute(
-                    "INSERT INTO user_facts (user_id, fact_id) VALUES (?, ?)", (user_id, id)
-                )
+                cursor.execute("INSERT INTO user_facts (user_id, fact_id) VALUES (?, ?)", (user_id, id))
 
     def delete_fact(self, fact):
         with self.connect() as connection:
@@ -383,9 +381,7 @@ class DatabaseHandler:
     def get_last_processed_index(self, chat_id: str):
         with self.connect() as connection:
             cursor = connection.cursor()
-            cursor.execute(
-                "SELECT last_processed_index FROM conversations WHERE id = ?", (chat_id,)
-            )
+            cursor.execute("SELECT last_processed_index FROM conversations WHERE id = ?", (chat_id,))
             index = cursor.fetchone()[0]
             return index
 

@@ -57,7 +57,6 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                padding: 24px;
             }
 
             .hidden {
@@ -481,6 +480,7 @@
             .info-field {
                 display: flex;
                 flex-direction: column;
+
                 gap: 3px;
             }
 
@@ -499,6 +499,9 @@
                 color: var(--text-secondary);
                 word-break: break-word;
                 white-space: pre-wrap;
+                padding:2px;
+                max-height: 190px;
+                overflow-y: auto;
             }
 
             /* Editable version of .info-field-value, used inside the chat-info
@@ -520,6 +523,9 @@
                 transition:
                     background 0.15s ease,
                     border-color 0.15s ease;
+                box-sizing: border-box;
+                max-height: 190px;
+                overflow-y: auto;
             }
             .info-field-input:disabled {
                 cursor: default;
@@ -1090,7 +1096,7 @@
         <div class="app-window">
             <!-- Headerbar -->
             <header class="headerbar">
-                <div class="window-controls" aria-hidden="true">
+                <div class="window-controls hidden" aria-hidden="true">
                     <span></span><span></span><span></span>
                 </div>
 
@@ -1290,7 +1296,7 @@
         </div>
 
         <!-- Settings popup -->
-        <div class="settings-backdrop hidden" id="settings-backdrop">
+        <div class="settings-backdrop" id="settings-backdrop">
             <div class="settings-window" role="dialog" aria-modal="true" aria-labelledby="settings-title">
                 <div class="settings-header">
                     <span class="settings-title" id="settings-title">Settings</span>
