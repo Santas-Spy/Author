@@ -10,66 +10,7 @@ from ai import chatformatter
 from ai.kobold import KoboldError, KoboldOfflineError, koboldInstance
 from ai.tools import tools as tool_list
 from signals import emit_signal
-
-
-class OrchestratorState(Enum):
-    READY = "ready"
-    WORKING = "working"
-    OFFLINE = "offline"
-
-
-class StateManager:
-    def __init__(self):
-        self._lock = threading.Lock()
-        self._status: OrchestratorState = OrchestratorState.READY
-        self._message: str = "Ready"
-        self._canceled: threading.Event = threading.Event()
-
-    def _set(self, status: OrchestratorState, message: str):
-        with self._lock:
-            if self._status == status and self._message == message:
-                return
-            self._status = status
-            self._message = message
-            emit_signal("state_change")
-
-    def _format_message(self, message, id):
-        if id:
-            db = databasehandler.DatabaseHandler()
-            chat_name = id
-            title = db.get_chat_title(id)
-            if title is not None:
-                chat_name = title
-            message = message.format(title=chat_name)
-        return message
-
-    def ready(self, message: str = "Ready", chat_id=None):
-        message = self._format_message(message, chat_id)
-        self._set(OrchestratorState.READY, message)
-
-    def working(self, message: str = "Working", chat_id=None):
-        message = self._format_message(message, chat_id)
-        self._set(OrchestratorState.WORKING, message)
-
-    def offline(self, message: str = "Could not connect to KoboldCPP"):
-        self._set(OrchestratorState.OFFLINE, message)
-
-    def cancel(self):
-        self._canceled.set()
-
-    def clear_cancel(self):
-        self._canceled.clear()
-
-    def is_canceled(self):
-        return self._canceled.is_set()
-
-    def get_state(self):
-        with self._lock:
-            return {"status": self._status.value, "message": self._message, "state": self._status}
-
-
-process_chats_flag = "ready"
-state = StateManager()
+from state.state import stateManager as state
 
 
 def chooseModel(message: str):
@@ -307,7 +248,7 @@ def sendUserMessage(
         pending_tools = []
         messages = chatformatter.split_conversation(message)
         messages = chatformatter.strip_previous_thinking(messages)
-        available_tools = tool_list.tools
+        available_tools = tool_list.get_default_toollist()
         while True:
             # Generate Text
             previous_token_type = None
@@ -341,6 +282,7 @@ def sendUserMessage(
                 break
 
             for tc in pending_tools:
+                yield {"type": "tool_call", "chat_id": str(chat_id), "token": json.dumps(tc)}
                 result = tool_list.call_tool(tc)
                 tool_response = result["tool_response"]
                 available_tools = result["next_tools"]
@@ -351,7 +293,7 @@ def sendUserMessage(
                     "tool_calls": tc,
                 }
                 messages.append(tool_call_message)
-                tool_call_result = {"role": "tool", "tool_call_id": tc["id"], "content": result}
+                tool_call_result = {"role": "tool", "tool_call_id": tc["id"], "content": tool_response}
                 messages.append(tool_call_result)
             pending_tools.clear()
     else:
@@ -450,12 +392,3 @@ def cancelProcessing():
 
 def stopGeneration():
     koboldInstance.stopGeneration()
-
-
-def getStatus():
-    online = koboldInstance.ping()
-    if not online:
-        state.offline()
-    if online and state.get_state()["state"] == OrchestratorState.OFFLINE:
-        state.ready("Server is back online")
-    return state.get_state()

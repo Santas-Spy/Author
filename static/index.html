@@ -2492,6 +2492,12 @@
                                     );
                                     break;
 
+                                case "tool_call":
+                                    console.log(data)
+                                    if (data.chat_id == state.chatOd && !state.editMode) {
+                                      appendMessage("assistant", data.token);
+                                    }
+
                                 case "complete":
                                     // The backend has finished generating the response.
                                     finalText = data.text || "";

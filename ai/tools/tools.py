@@ -6,8 +6,6 @@ import ai.tools.read_conversation as read_conversation
 import ai.tools.websearch as websearch
 from ai.tools import list_conversation
 
-tools = [list_conversation.get_tool(), read_conversation.get_tool()]
-
 
 def get_default_toollist():
     return [list_conversation.get_tool()]

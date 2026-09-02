@@ -1,4 +1,5 @@
 import databasehandler
+from state.state import stateManager
 
 
 def get_tool():
@@ -17,6 +18,7 @@ def get_tool():
 
 
 def execute() -> dict[str, str]:
+    stateManager.working("Listing previous conversations")
     db = databasehandler.DatabaseHandler()
     conversations = db.load_all_conversations()
     chat_list = {}

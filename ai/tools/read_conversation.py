@@ -4,6 +4,7 @@ import config
 import databasehandler
 from ai import chatformatter
 from ai.kobold import koboldInstance
+from state.state import stateManager
 
 
 def get_tool():
@@ -31,7 +32,7 @@ def get_tool():
 
 
 def execute(conversation_id, task) -> str:
-    print("Reading conversation")
+    stateManager.working(message=f"Reading conversation {conversation_id}")
     db = databasehandler.DatabaseHandler()
     conversation = db.load_conversation(conversation_id)
     if conversation is None:

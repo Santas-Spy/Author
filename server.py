@@ -19,6 +19,7 @@ import config
 import databasehandler
 import signals
 from ai.kobold import KoboldError, koboldInstance
+from state.state import stateManager
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -175,7 +176,7 @@ def delete_chat(req: ChatActionRequest):
 
 @app.get("/api/status")
 def get_status():
-    return orchestrator.getStatus()
+    return stateManager.get_state()
 
 
 @app.post("/api/updateChat")

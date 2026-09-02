@@ -5,6 +5,7 @@ from ddgs import DDGS
 import config
 from ai import chatformatter
 from ai.kobold import koboldInstance
+from state.state import stateManager
 
 filter_search = [
     {
@@ -14,9 +15,7 @@ filter_search = [
             "description": "Read a webpages full page",
             "parameters": {
                 "type": "object",
-                "properties": {
-                    "href": {"type": "string", "description": "The href of the website to read"}
-                },
+                "properties": {"href": {"type": "string", "description": "The href of the website to read"}},
                 "required": ["href"],
             },
         },
@@ -25,6 +24,7 @@ filter_search = [
 
 
 def get_tool():
+    return None
     return {
         "type": "function",
         "function": {
@@ -41,14 +41,7 @@ def get_tool():
 
 def execute(query) -> str:
     print(f"Searching the web for: {query}. Web searches are currently disabled")
-    return "Web searches are currently disabled"
+    return "Websearch is currently unavailable"
+    stateManager.working(message=f"Searching the web for: {query}")
     results = DDGS().text(query, max_results=5)
-    prompt = config.readSetting("prompts.websearch")
-    prompt = prompt.replace("{query}", query)
-    prompt = prompt.replace("{web_result}", json.dumps(results))
-    messages = chatformatter.split_conversation(prompt)
-    website = koboldInstance.generateWithTools(
-        messages, tools=filter_search, tool_choice="required"
-    )
-    print(f"Got back: {results}")
-    print(f"searching website {website}")
+    return json.dumps(results)
