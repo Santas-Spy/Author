@@ -10,8 +10,13 @@
     "system": {
         "tools": {
             "read_conversation": {
+                "enabled": true,
                 "max_conversation_size": 3000,
                 "target_summary_size": 500
+            },
+            "web_search": {
+                "enabled": true,
+                "results": 5
             }
         }
     },

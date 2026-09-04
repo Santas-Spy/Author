@@ -98,6 +98,7 @@ async def check_run_background_processing():
 
 @app.on_event("startup")
 def startup_event():
+    settings.reload_config()
     koboldInstance.setEndpoint(config.readSetting("kobold.url"))
     asyncio.create_task(check_run_background_processing())
 
@@ -237,7 +238,7 @@ async def get_settings():
 
 @app.post("/api/saveSettings")
 async def save_setting(req: SettingsRequest):
-    print(req)
+    settings.update_settings(req.settings)
 
 
 @app.get("/")

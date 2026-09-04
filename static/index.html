@@ -1118,7 +1118,7 @@
             .settings-group {
                 border: 1px solid var(--border);
                 border-radius: 8px;
-                overflow: hidden;
+                overflow: auto;
                 margin-bottom: 2px;
             }
             .settings-group-header {
@@ -1161,7 +1161,7 @@
                 padding: 1px 5px;
             }
             .settings-group-body {
-                padding: 4px 0;
+                padding: 4px;
                 display: none;
             }
             .settings-group[data-open="true"] .settings-group-body {
@@ -2036,7 +2036,9 @@
                         {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(state.settingsData),
+                            body: JSON.stringify({
+                                settings: state.settingsData,
+                            }),
                         },
                     );
                     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
