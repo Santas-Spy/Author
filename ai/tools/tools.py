@@ -2,13 +2,19 @@ import json
 
 from typing_extensions import Any
 
-import ai.tools.read_conversation as read_conversation
-import ai.tools.websearch as websearch
-from ai.tools import list_conversation
+from ai.tools import list_conversation, read_conversation, websearch
+from state import settings
 
 
 def get_default_toollist():
-    return [list_conversation.get_tool()]
+    tools = []
+    if settings.readSetting("system.tools.web_search.enabled"):
+        tools.append(websearch.get_tool())
+
+    if settings.readSetting("system.tools.list_conversations.enabled"):
+        tools.append(list_conversation.get_tool())
+
+    return tools
 
 
 def call_tool(tool) -> dict[str, str | list]:

@@ -4,17 +4,23 @@ import sqlite3
 from json.decoder import JSONDecodeError
 from uuid import uuid4
 
+from state import settings
+
 
 class DatabaseHandler:
     def __init__(self, database_name="appdata.db"):
+        self.database_name = database_name
+        self.create_tables()
+
+    def _get_database_location(self):
+        db_location = settings.readSetting("system.database_location", self.database_name)
         dir = "data/"
         os.makedirs(dir, exist_ok=True)
-        self.database_name = f"{dir}/{database_name}"
-        self.create_tables()
+        return f"{dir}/{db_location}"
 
     def connect(self):
         # Remove transactions while testing
-        connection = sqlite3.connect(self.database_name, isolation_level=None)
+        connection = sqlite3.connect(self._get_database_location(), isolation_level=None)
         connection.execute("PRAGMA foreign_keys = ON")
         connection.row_factory = sqlite3.Row
         return connection

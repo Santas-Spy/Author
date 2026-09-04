@@ -5,6 +5,7 @@ from ddgs import DDGS
 import config
 from ai import chatformatter
 from ai.kobold import koboldInstance
+from state import settings
 from state.state import stateManager
 
 filter_search = [
@@ -24,7 +25,6 @@ filter_search = [
 
 
 def get_tool():
-    return None
     return {
         "type": "function",
         "function": {
@@ -41,7 +41,7 @@ def get_tool():
 
 def execute(query) -> str:
     print(f"Searching the web for: {query}. Web searches are currently disabled")
-    return "Websearch is currently unavailable"
     stateManager.working(message=f"Searching the web for: {query}")
+    max_results = settings.readSetting("system.tools.web_search.max_results")
     results = DDGS().text(query, max_results=5)
     return json.dumps(results)

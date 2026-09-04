@@ -1650,6 +1650,13 @@
                     ></span>
                     <button
                         class="settings-btn settings-btn-secondary"
+                        id="settings-reload-btn"
+                        type="button"
+                    >
+                        Reload
+                    </button>
+                    <button
+                        class="settings-btn settings-btn-secondary"
                         id="settings-discard-btn"
                         type="button"
                     >
@@ -1690,6 +1697,7 @@
                     regenerateTitle: "regenerateTitle",
                     getSettings: "getSettings",
                     saveSettings: "saveSettings",
+                    reloadSettings: "reloadSettings",
                 },
                 statusPollIntervalMs: 3000,
                 markers: {
@@ -1754,6 +1762,9 @@
                 settingsSaveBtn: document.getElementById("settings-save-btn"),
                 settingsDiscardBtn: document.getElementById(
                     "settings-discard-btn",
+                ),
+                settingsReloadBtn: document.getElementById(
+                    "settings-reload-btn",
                 ),
                 settingsCloseBtn: document.getElementById("settings-close-btn"),
                 settingsSaveStatus: document.getElementById(
@@ -1992,6 +2003,7 @@
 
                 dom.settingsSaveBtn.disabled = true;
                 dom.settingsDiscardBtn.disabled = true;
+                dom.settingsReloadBtn.disabled = true;
                 updateSaveStatus("");
 
                 try {
@@ -2013,6 +2025,7 @@
 
                     dom.settingsSaveBtn.disabled = false;
                     dom.settingsDiscardBtn.disabled = false;
+                    dom.settingsReloadBtn.disabled = false;
                 } catch (err) {
                     dom.settingsBody.innerHTML = "";
                     const errEl = document.createElement("div");
@@ -2050,10 +2063,39 @@
                     }, 2500);
 
                     closeSettings();
+                    await refreshChatList();
                 } catch (err) {
                     updateSaveStatus("error", `Save failed: ${err.message}`);
                 } finally {
                     dom.settingsSaveBtn.disabled = false;
+                }
+            }
+
+            async function reloadSettings() {
+                dom.settingsReloadBtn.disabled = true;
+                updateSaveStatus("");
+
+                try {
+                    const resp = await fetch(
+                        CONFIG.apiBaseUrl + CONFIG.endpoints.reloadSettings,
+                        {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                        },
+                    );
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+                    state.settingsDirty = false;
+                    updateSaveStatus("reloaded");
+                    setTimeout(() => {
+                        if (!state.settingsDirty) updateSaveStatus("");
+                    }, 2500);
+                    closeSettings();
+                    await refreshChatList();
+                } catch (err) {
+                    updateSaveStatus("error", `Reload failed: ${err.message}`);
+                } finally {
+                    dom.settingsReloadBtn.disabled = false;
                 }
             }
 
@@ -2079,6 +2121,7 @@
             dom.settingsButton.addEventListener("click", openSettings);
             dom.settingsCloseBtn.addEventListener("click", closeSettings);
             dom.settingsDiscardBtn.addEventListener("click", closeSettings);
+            dom.settingsReloadBtn.addEventListener("click", reloadSettings);
             dom.settingsSaveBtn.addEventListener("click", saveSettings);
 
             // Click outside panel to close

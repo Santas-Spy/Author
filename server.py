@@ -117,12 +117,7 @@ async def send_message(req: ChatRequest, background_tasks: BackgroundTasks):
         force_thinking = req.force_thinking
 
         def token_gen():
-            for item in orchestrator.sendUserMessage(
-                chat_id=chat_id,
-                user_message=user_message,
-                force_thinking=force_thinking,
-                use_tools=False,
-            ):
+            for item in orchestrator.sendUserMessage(chat_id=chat_id, user_message=user_message, force_thinking=force_thinking):
                 yield json.dumps(item) + "\n"
 
             signals.emit_signal("chat_update", {"chat_id": chat_id})
@@ -239,6 +234,13 @@ async def get_settings():
 @app.post("/api/saveSettings")
 async def save_setting(req: SettingsRequest):
     settings.update_settings(req.settings)
+    print("Settings updated")
+
+
+@app.post("/api/reloadSettings")
+async def reload_setting():
+    settings.reload_config()
+    print("Settings reloaded")
 
 
 @app.get("/")

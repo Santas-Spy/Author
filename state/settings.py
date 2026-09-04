@@ -1,6 +1,6 @@
 import config
 
-settings = {}
+settings = None
 
 
 def reload_config():
@@ -15,6 +15,9 @@ def update_settings(new_settings):
 
 def readSetting(pathStr: str, default=None) -> str:
     global settings
+    if settings is None:
+        settings = reload_config()
+
     path = pathStr.split(".")
     setting = settings
     for step in path:

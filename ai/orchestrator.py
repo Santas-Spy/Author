@@ -10,6 +10,7 @@ from ai import chatformatter
 from ai.kobold import KoboldError, KoboldOfflineError, koboldInstance
 from ai.tools import tools as tool_list
 from signals import emit_signal
+from state import settings
 from state.state import OrchestratorState
 from state.state import stateManager as state
 
@@ -246,6 +247,10 @@ def sendUserMessage(
     state.working("Thinking about chat {title}", chat_id=chat_id)
     message = prompt + chatText
     streamed_response = ""
+
+    # Check if tool use is enabled
+    use_tools = use_tools and settings.readSetting("system.tools.enabled", False)
+
     if use_tools:
         pending_tools = []
         messages = chatformatter.split_conversation(message)
@@ -323,8 +328,10 @@ def sendUserMessage(
 
 
 def processChatsInBackground():
-    # return  # Disabled for now
     if state.get_state()["state"] != OrchestratorState.READY:
+        return
+
+    if not settings.readSetting("system.background_processing", True):
         return
 
     def run_job():
