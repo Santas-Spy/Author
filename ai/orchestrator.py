@@ -10,6 +10,7 @@ from ai import chatformatter
 from ai.kobold import KoboldError, KoboldOfflineError, koboldInstance
 from ai.tools import tools as tool_list
 from signals import emit_signal
+from state.state import OrchestratorState
 from state.state import stateManager as state
 
 
@@ -211,19 +212,20 @@ def sendUserMessage(
 
     # Build the conversation history
     chatText = ""
+    is_continuation = user_message == None or user_message == ""
     if chat_data is not None and "content" in chat_data:
         chatText = chat_data["content"]
 
     # Allow continuations
-    if user_message != None and user_message != "":
+    if not is_continuation:
         user_message = chatformatter.cleanPlaceholders(user_message)
         chatText = chatText + "{{[INPUT]}}" + user_message + "{{[OUTPUT]}}"
         db.update_conversation(chat_id, {"content": chatText})
 
-    if user_message == None or user_message == "":
+    if is_continuation:
         use_tools = False  # Do not allow for tool usage if message is a continuation
 
-    if force_thinking and not use_tools:
+    if force_thinking and not use_tools and not is_continuation:
         chatText = chatText + "<think>\nHere's a Thinking Process:\n"
         db.update_conversation(chat_id, {"content": chatText})
 
@@ -321,7 +323,7 @@ def sendUserMessage(
 
 
 def processChatsInBackground():
-    return  # Disabled for now
+    # return  # Disabled for now
     if state.get_state()["state"] != OrchestratorState.READY:
         return
 

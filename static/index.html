@@ -10,12 +10,13 @@
             href="https://fonts.googleapis.com/css2?family=Cantarell:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap"
             rel="stylesheet"
         />
-        <link rel="icon" type="image/png" href ="/static/assets/favicon.png" />
+        <link rel="icon" type="image/png" href="/static/assets/favicon.png" />
         <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.9/purify.min.js"></script>
-        <!-- Highlight.js CSS (theme) -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-        <!-- Highlight.js JS -->
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+        />
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
         <style>
             :root {
@@ -43,13 +44,11 @@
             * {
                 box-sizing: border-box;
             }
-
             html,
             body {
                 height: 100%;
                 margin: 0;
             }
-
             body {
                 font-family: var(--font-ui);
                 background: #131313;
@@ -58,13 +57,11 @@
                 align-items: center;
                 justify-content: center;
             }
-
             .hidden {
                 display: none !important;
             }
 
             /* ---------- App window shell ---------- */
-
             .app-window {
                 width: 100%;
                 height: 100%;
@@ -78,7 +75,6 @@
             }
 
             /* ---------- Headerbar ---------- */
-
             .headerbar {
                 flex: 0 0 auto;
                 background: var(--bg-headerbar);
@@ -88,19 +84,16 @@
                 align-items: center;
                 gap: 12px;
             }
-
             .window-controls {
                 display: flex;
                 gap: 7px;
             }
-
             .window-controls span {
                 width: 11px;
                 height: 11px;
                 border-radius: 50%;
                 background: #565654;
             }
-
             .headerbar-title {
                 flex: 1;
                 display: flex;
@@ -108,13 +101,11 @@
                 align-items: center;
                 line-height: 1.25;
             }
-
             .headerbar-title .name {
                 font-weight: 700;
                 font-size: 14px;
                 letter-spacing: 0.2px;
             }
-
             .headerbar-title .endpoint {
                 font-family: var(--font-mono);
                 font-size: 10.5px;
@@ -133,13 +124,11 @@
                 border-radius: 999px;
                 max-width: 20%;
             }
-
             .status-pill .status-message {
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
             }
-
             .status-dot {
                 flex: 0 0 auto;
                 width: 7px;
@@ -148,7 +137,6 @@
                 background: var(--text-muted);
                 transition: background 0.2s ease;
             }
-            /* Status values come from the server's {"status", "message"} response. */
             .status-dot[data-state="ready"] {
                 background: var(--success);
             }
@@ -159,11 +147,9 @@
             .status-dot[data-state="disabled"] {
                 background: var(--text-muted);
             }
-            /* "offline" is set by the frontend only when the status endpoint itself is unreachable. */
             .status-dot[data-state="offline"] {
                 background: var(--danger);
             }
-
             @keyframes status-pulse {
                 0%,
                 100% {
@@ -201,7 +187,6 @@
                 width: 15px;
                 height: 15px;
             }
-
             .icon-button.editing {
                 background: var(--accent-soft);
                 border-color: var(--accent);
@@ -209,13 +194,11 @@
             }
 
             /* ---------- Message window layout ---------- */
-
             .message-window {
                 display: flex;
                 flex: 1 1 auto;
                 min-height: 0;
             }
-
             .message-panel {
                 flex: 1 1 auto;
                 min-width: 0;
@@ -224,9 +207,7 @@
                 min-height: 0;
             }
 
-            /* ---------- Shared sidebar panel styling ---------- */
-            /* Used by both the chat list (left) and the chat info panel (right). */
-
+            /* ---------- Sidebar panels ---------- */
             .sidebar-panel {
                 flex: 0 0 auto;
                 min-width: 100px;
@@ -237,7 +218,6 @@
                 display: flex;
                 flex-direction: column;
             }
-
             .sidebar-panel::-webkit-scrollbar {
                 width: 8px;
             }
@@ -248,14 +228,12 @@
             .sidebar-panel::-webkit-scrollbar-track {
                 background: transparent;
             }
-
             .chat-list {
                 border-right: 1px solid var(--border);
             }
             .chat-info {
                 border-left: 1px solid var(--border);
             }
-
             .sidebar-heading {
                 flex: 0 0 auto;
                 font-family: var(--font-mono);
@@ -266,7 +244,6 @@
                 color: var(--text-muted);
                 padding: 14px 16px 8px;
             }
-
             .sidebar-empty {
                 padding: 4px 16px 14px;
                 font-size: 12.5px;
@@ -274,14 +251,12 @@
             }
 
             /* ---------- Chat list items ---------- */
-
             .chat-item-list {
                 display: flex;
                 flex-direction: column;
                 gap: 4px;
                 padding: 0 8px 12px;
             }
-
             .chat-item {
                 position: relative;
                 display: flex;
@@ -300,7 +275,6 @@
                     background 0.15s ease,
                     color 0.15s ease;
             }
-
             .chat-item:hover {
                 background: var(--bg-card-hover);
                 color: var(--text-primary);
@@ -309,12 +283,10 @@
                 opacity: 0.45;
                 cursor: not-allowed;
             }
-
             .chat-item.active {
                 background: var(--accent-soft);
                 color: var(--text-primary);
             }
-
             .chat-item .chat-item-dot {
                 flex: 0 0 auto;
                 width: 6px;
@@ -322,31 +294,23 @@
                 border-radius: 50%;
                 background: var(--text-muted);
             }
-
             .chat-item.active .chat-item-dot {
                 background: var(--accent);
             }
-
             .chat-item-label {
                 flex: 1 1 auto;
                 display: inline-flex;
                 overflow: hidden;
                 white-space: nowrap;
             }
-
-            /* Unread chats get a bolder label so the badge isn't the only signal. */
             .chat-item.unread .chat-item-label {
                 color: var(--text-primary);
                 font-weight: 700;
             }
-
-            /* Each letter is its own inline-block so it can be transformed/animated
-     independently — CSS transforms have no effect on plain inline text. */
             .chat-item-label .letter {
                 display: inline-block;
                 white-space: pre;
             }
-
             @keyframes letter-fade-out {
                 from {
                     opacity: 1;
@@ -357,7 +321,6 @@
                     transform: translateY(7px);
                 }
             }
-
             @keyframes letter-fade-in {
                 from {
                     opacity: 0;
@@ -368,9 +331,6 @@
                     transform: translateY(0);
                 }
             }
-
-            /* Unread badge: shown once a chat finishes responding while the user
-     was looking at a different chat. Clears when that chat is opened. */
             .chat-item-unread-badge {
                 display: none;
                 flex: 0 0 auto;
@@ -381,12 +341,10 @@
                 background: var(--accent);
                 box-shadow: 0 0 0 3px var(--accent-soft);
             }
-
             .chat-item.unread .chat-item-unread-badge {
                 display: block;
                 animation: unread-pop 0.25s ease;
             }
-
             @keyframes unread-pop {
                 from {
                     transform: scale(0.3);
@@ -397,10 +355,6 @@
                     opacity: 1;
                 }
             }
-
-            /* Per-chat delete button: sits at the far right of the item, hidden
-     until the item (or the button itself, for keyboard focus) is hovered
-     so the list doesn't look cluttered with delete icons at rest. */
             .chat-item-delete-button {
                 flex: 0 0 auto;
                 width: 22px;
@@ -436,7 +390,6 @@
                 width: 13px;
                 height: 13px;
             }
-
             .thinking-remove-button {
                 flex: 0 0 auto;
                 width: 22px;
@@ -456,7 +409,6 @@
                     background 0.15s ease,
                     color 0.15s ease;
             }
-
             .thinking-remove-button:hover {
                 background: var(--danger-soft);
                 color: var(--danger);
@@ -466,24 +418,18 @@
                 height: 13px;
             }
 
-            thinking-remove-button
-
             /* ---------- Chat info fields ---------- */
-
             .info-field-list {
                 display: flex;
                 flex-direction: column;
                 gap: 14px;
                 padding: 0 16px 16px;
             }
-
             .info-field {
                 display: flex;
                 flex-direction: column;
-
                 gap: 3px;
             }
-
             .info-field-label {
                 font-family: var(--font-mono);
                 font-size: 10px;
@@ -492,23 +438,16 @@
                 text-transform: uppercase;
                 color: var(--text-muted);
             }
-
             .info-field-value {
                 font-size: 13px;
                 line-height: 1.45;
                 color: var(--text-secondary);
                 word-break: break-word;
                 white-space: pre-wrap;
-                padding:2px;
+                padding: 2px;
                 max-height: 190px;
                 overflow-y: auto;
             }
-
-            /* Editable version of .info-field-value, used inside the chat-info
-     panel so each field's value can be turned into a real form control.
-     Disabled (view mode) it's styled to look just like the old read-only
-     span; enabled (edit mode) it gets a visible background/border so it
-     reads as an editable field. */
             .info-field-input {
                 display: block;
                 width: 100%;
@@ -543,7 +482,6 @@
             }
 
             /* ---------- Message list ---------- */
-
             .message-list {
                 flex: 1 1 auto;
                 min-width: 0;
@@ -553,7 +491,6 @@
                 flex-direction: column;
                 gap: 12px;
             }
-
             .message-list::-webkit-scrollbar {
                 width: 8px;
             }
@@ -564,7 +501,6 @@
             .message-list::-webkit-scrollbar-track {
                 background: transparent;
             }
-
             .message-row {
                 display: flex;
                 align-items: flex-end;
@@ -578,7 +514,6 @@
                 align-self: flex-end;
                 flex-direction: row-reverse;
             }
-
             .avatar {
                 flex: 0 0 auto;
                 width: 26px;
@@ -594,7 +529,6 @@
                 width: 15px;
                 height: 15px;
             }
-
             .bubble {
                 padding: 10px 14px;
                 border-radius: 16px;
@@ -604,30 +538,23 @@
                 white-space: pre-wrap;
                 word-break: break-word;
             }
-
             .message-row.assistant .bubble {
                 background: var(--bg-card);
                 color: var(--text-primary);
                 border-bottom-left-radius: 4px;
             }
-
             .message-row.user .bubble {
                 background: var(--accent);
                 color: #ffffff;
                 border-bottom-right-radius: 4px;
             }
-
             .message-row.system .bubble {
                 background: var(--danger-soft);
                 color: #ffb4b4;
                 border: 1px solid rgba(224, 27, 36, 0.35);
             }
 
-            /* ---------- Markdown content (rendered inside bubbles) ---------- */
-            /* .bubble already sets white-space: pre-wrap for the plain-text/system
-     case, which would visually double-space rendered markdown (since markdown
-     elements already carry their own margins). Reset that just for rendered
-     markdown content. */
+            /* ---------- Markdown content ---------- */
             .markdown-content {
                 white-space: normal;
             }
@@ -651,7 +578,6 @@
             .markdown-content a {
                 color: inherit;
                 text-decoration: underline;
-                text-decoration-color: currentColor;
                 opacity: 0.9;
             }
             .markdown-content a:hover {
@@ -674,6 +600,7 @@
                 padding: 30px 12px 10px 12px;
                 overflow-x: auto;
                 margin: 0.5em 0;
+                position: relative;
             }
             .markdown-content pre ::selection {
                 background: rgba(255, 255, 255, 0.2);
@@ -733,13 +660,10 @@
                 max-width: 100%;
                 border-radius: 6px;
             }
-            .markdown-content pre {
-                position: relative; /* For absolute positioning */
-            }
             .code-lang-label {
                 position: absolute;
                 top: 8px;
-                left: 8px; /* Leave room for copy button */
+                left: 8px;
                 font-size: 0.75em;
                 background: rgba(255, 255, 255, 0.1);
                 border: none;
@@ -766,8 +690,7 @@
                 color: var(--text-primary);
             }
 
-            /* ---------- Thinking dropdown (<think>...</think> content) ---------- */
-
+            /* ---------- Think blocks ---------- */
             .think-block {
                 margin: 0 0 0.6em;
                 border: 1px solid var(--border);
@@ -819,19 +742,12 @@
                 border-color: rgba(255, 255, 255, 0.2);
             }
 
-            /* ---------- Streamed-token animation ---------- */
-            /* Each chunk that arrives from the SSE/stream reader is split into one
-     .stream-letter span per character, so text fades/rises into place letter
-     by letter instead of the whole bubble re-painting flatly on every chunk.
-     This is the same fade-up-in used for chat-item title changes, just much
-     faster and with a shorter travel distance so a fast stream reads as
-     quick, smooth handwriting rather than a slow reveal. */
+            /* ---------- Stream animation ---------- */
             .stream-letter {
                 display: inline-block;
                 white-space: pre;
                 animation: letter-fade-up-in 140ms ease-out both;
             }
-
             @keyframes letter-fade-up-in {
                 from {
                     opacity: 0;
@@ -842,13 +758,11 @@
                     transform: translateY(0);
                 }
             }
-
             @media (prefers-reduced-motion: reduce) {
                 .stream-letter {
                     animation: none;
                 }
             }
-
             .thinking-dots {
                 display: flex;
                 gap: 4px;
@@ -867,7 +781,6 @@
             .thinking-dots span:nth-child(3) {
                 animation-delay: 0.3s;
             }
-
             @keyframes thinking-bounce {
                 0%,
                 60%,
@@ -881,8 +794,7 @@
                 }
             }
 
-            /* ---------- Edit mode (raw transcript editor) ---------- */
-
+            /* ---------- Edit mode ---------- */
             .edit-textarea {
                 flex: 1 1 auto;
                 min-width: 0;
@@ -913,7 +825,6 @@
             }
 
             /* ---------- Composer ---------- */
-
             .composer {
                 flex: 0 0 auto;
                 background: var(--bg-composer);
@@ -923,20 +834,17 @@
                 flex-direction: column;
                 gap: 6px;
             }
-
             .composer-meta {
                 font-family: var(--font-mono);
                 font-size: 10.5px;
                 color: var(--text-muted);
                 padding: 0 4px;
             }
-
             .composer-form {
                 display: flex;
                 align-items: flex-end;
                 gap: 8px;
             }
-
             .composer-input {
                 flex: 1;
                 background: var(--bg-void);
@@ -962,39 +870,7 @@
             .composer-input:disabled {
                 opacity: 0.6;
             }
-
-            .send-button {
-                flex: 0 0 auto;
-                width: 38px;
-                height: 38px;
-                border-radius: 50%;
-                border: none;
-                background: var(--accent);
-                color: #ffffff;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                transition:
-                    background 0.15s ease,
-                    transform 0.1s ease;
-            }
-            .send-button:hover:not(:disabled) {
-                background: var(--accent-hover);
-            }
-            .send-button:active:not(:disabled) {
-                transform: scale(0.94);
-            }
-            .send-button:disabled {
-                background: var(--bg-card);
-                color: var(--text-muted);
-                cursor: not-allowed;
-            }
-            .send-button svg {
-                width: 16px;
-                height: 16px;
-            }
-
+            .send-button,
             .process-button {
                 flex: 0 0 auto;
                 width: 38px;
@@ -1011,22 +887,25 @@
                     background 0.15s ease,
                     transform 0.1s ease;
             }
+            .send-button:hover:not(:disabled),
             .process-button:hover:not(:disabled) {
                 background: var(--accent-hover);
             }
+            .send-button:active:not(:disabled),
             .process-button:active:not(:disabled) {
                 transform: scale(0.94);
             }
+            .send-button:disabled,
             .process-button:disabled {
                 background: var(--bg-card);
                 color: var(--text-muted);
                 cursor: not-allowed;
             }
+            .send-button svg,
             .process-button svg {
                 width: 16px;
                 height: 16px;
             }
-
             .cancel-button {
                 flex: 0 0 auto;
                 width: 38px;
@@ -1058,7 +937,6 @@
                 width: 16px;
                 height: 16px;
             }
-
             .delete-all-chats-button {
                 flex: 0 0 auto;
                 background: var(--bg-card);
@@ -1090,6 +968,425 @@
                 width: 16px;
                 height: 16px;
             }
+
+            /* ================================================================
+               SETTINGS PANEL
+               ================================================================ */
+
+            .settings-backdrop {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.55);
+                backdrop-filter: blur(4px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 100;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.2s ease;
+            }
+            .settings-backdrop.open {
+                opacity: 1;
+                pointer-events: all;
+            }
+
+            .settings-panel {
+                width: 520px;
+                max-width: calc(100vw - 48px);
+                max-height: calc(100vh - 80px);
+                background: var(--bg-headerbar);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.7);
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                transform: translateY(12px) scale(0.98);
+                transition: transform 0.2s ease;
+            }
+            .settings-backdrop.open .settings-panel {
+                transform: translateY(0) scale(1);
+            }
+
+            .settings-header {
+                flex: 0 0 auto;
+                padding: 16px 18px 14px;
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .settings-header-left {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .settings-header-icon {
+                width: 28px;
+                height: 28px;
+                border-radius: 7px;
+                background: var(--accent-soft);
+                color: var(--accent);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .settings-header-icon svg {
+                width: 14px;
+                height: 14px;
+            }
+            .settings-header h2 {
+                margin: 0;
+                font-size: 14px;
+                font-weight: 700;
+                color: var(--text-primary);
+                letter-spacing: 0.15px;
+            }
+            .settings-close {
+                width: 26px;
+                height: 26px;
+                border-radius: 6px;
+                border: 1px solid var(--border);
+                background: transparent;
+                color: var(--text-muted);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition:
+                    background 0.15s ease,
+                    color 0.15s ease;
+            }
+            .settings-close:hover {
+                background: var(--bg-card-hover);
+                color: var(--text-primary);
+            }
+            .settings-close svg {
+                width: 13px;
+                height: 13px;
+            }
+
+            .settings-body {
+                flex: 1 1 auto;
+                overflow-y: auto;
+                padding: 16px 18px;
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+            .settings-body::-webkit-scrollbar {
+                width: 6px;
+            }
+            .settings-body::-webkit-scrollbar-thumb {
+                background: var(--border);
+                border-radius: 6px;
+            }
+            .settings-body::-webkit-scrollbar-track {
+                background: transparent;
+            }
+
+            /* Loading / error states */
+            .settings-state {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                padding: 40px 0;
+                font-family: var(--font-mono);
+                font-size: 12px;
+                color: var(--text-muted);
+            }
+            .settings-state.error {
+                color: #ffb4b4;
+            }
+            .settings-spinner {
+                width: 14px;
+                height: 14px;
+                border: 2px solid var(--border);
+                border-top-color: var(--accent);
+                border-radius: 50%;
+                animation: spin 0.7s linear infinite;
+            }
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            /* Group (nested object) */
+            .settings-group {
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                overflow: hidden;
+                margin-bottom: 2px;
+            }
+            .settings-group-header {
+                padding: 9px 14px;
+                background: rgba(255, 255, 255, 0.03);
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                cursor: pointer;
+                user-select: none;
+            }
+            .settings-group-header:hover {
+                background: rgba(255, 255, 255, 0.05);
+            }
+            .settings-group-chevron {
+                width: 14px;
+                height: 14px;
+                color: var(--text-muted);
+                transition: transform 0.18s ease;
+                flex-shrink: 0;
+            }
+            .settings-group[data-open="true"] .settings-group-chevron {
+                transform: rotate(90deg);
+            }
+            .settings-group-label {
+                font-family: var(--font-mono);
+                font-size: 11px;
+                font-weight: 500;
+                letter-spacing: 0.5px;
+                color: var(--text-secondary);
+                flex: 1;
+            }
+            .settings-group-count {
+                font-family: var(--font-mono);
+                font-size: 10px;
+                color: var(--text-muted);
+                background: var(--bg-card);
+                border-radius: 4px;
+                padding: 1px 5px;
+            }
+            .settings-group-body {
+                padding: 4px 0;
+                display: none;
+            }
+            .settings-group[data-open="true"] .settings-group-body {
+                display: block;
+            }
+
+            /* Individual setting row */
+            .setting-row {
+                display: flex;
+                align-items: center;
+                padding: 9px 14px;
+                gap: 12px;
+                transition: background 0.12s ease;
+                border-radius: 0;
+            }
+            .setting-row:hover {
+                background: rgba(255, 255, 255, 0.025);
+            }
+            .setting-row-info {
+                flex: 1 1 auto;
+                min-width: 0;
+            }
+            .setting-row-key {
+                font-size: 13px;
+                color: var(--text-primary);
+                font-weight: 400;
+            }
+            .setting-row-type {
+                font-family: var(--font-mono);
+                font-size: 10px;
+                color: var(--text-muted);
+                margin-top: 2px;
+            }
+            .setting-row-control {
+                flex: 0 0 auto;
+            }
+
+            /* --- Toggle switch (boolean) --- */
+            .toggle-switch {
+                position: relative;
+                display: inline-block;
+                width: 38px;
+                height: 22px;
+                cursor: pointer;
+            }
+            .toggle-switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+                position: absolute;
+            }
+            .toggle-track {
+                position: absolute;
+                inset: 0;
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 11px;
+                transition:
+                    background 0.2s ease,
+                    border-color 0.2s ease;
+            }
+            .toggle-thumb {
+                position: absolute;
+                top: 3px;
+                left: 3px;
+                width: 14px;
+                height: 14px;
+                border-radius: 50%;
+                background: var(--text-muted);
+                transition:
+                    transform 0.2s ease,
+                    background 0.2s ease;
+            }
+            .toggle-switch input:checked + .toggle-track {
+                background: var(--accent);
+                border-color: var(--accent);
+            }
+            .toggle-switch input:checked + .toggle-track + .toggle-thumb {
+                transform: translateX(16px);
+                background: #fff;
+            }
+            .toggle-switch input:checked + .toggle-track {
+                /* track active */
+            }
+
+            /* --- Text input (string / integer without range) --- */
+            .setting-text-input {
+                background: var(--bg-void);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                color: var(--text-primary);
+                font-family: var(--font-ui);
+                font-size: 13px;
+                padding: 5px 9px;
+                width: 180px;
+                outline: none;
+                transition: border-color 0.15s ease;
+            }
+            .setting-text-input:focus {
+                border-color: var(--accent);
+            }
+            .setting-text-input::placeholder {
+                color: var(--text-muted);
+            }
+
+            /* --- Slider (integer with min/max) --- */
+            .slider-control {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .slider-value-display {
+                font-family: var(--font-mono);
+                font-size: 12px;
+                color: var(--text-secondary);
+                min-width: 32px;
+                text-align: right;
+            }
+            input[type="range"].setting-range {
+                -webkit-appearance: none;
+                width: 130px;
+                height: 4px;
+                border-radius: 2px;
+                background: var(--border);
+                outline: none;
+                cursor: pointer;
+            }
+            input[type="range"].setting-range::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                width: 14px;
+                height: 14px;
+                border-radius: 50%;
+                background: var(--accent);
+                border: 2px solid #fff;
+                cursor: pointer;
+                transition: transform 0.1s ease;
+            }
+            input[type="range"].setting-range::-webkit-slider-thumb:hover {
+                transform: scale(1.15);
+            }
+            input[type="range"].setting-range::-moz-range-thumb {
+                width: 14px;
+                height: 14px;
+                border-radius: 50%;
+                background: var(--accent);
+                border: 2px solid #fff;
+                cursor: pointer;
+            }
+
+            /* --- Number input (integer without range) --- */
+            .setting-number-input {
+                background: var(--bg-void);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                color: var(--text-primary);
+                font-family: var(--font-mono);
+                font-size: 13px;
+                padding: 5px 9px;
+                width: 90px;
+                outline: none;
+                transition: border-color 0.15s ease;
+                -moz-appearance: textfield;
+            }
+            .setting-number-input:focus {
+                border-color: var(--accent);
+            }
+            .setting-number-input::-webkit-inner-spin-button,
+            .setting-number-input::-webkit-outer-spin-button {
+                -webkit-appearance: none;
+            }
+
+            /* Footer */
+            .settings-footer {
+                flex: 0 0 auto;
+                padding: 12px 18px;
+                border-top: 1px solid var(--border);
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                gap: 8px;
+            }
+            .settings-btn {
+                padding: 7px 16px;
+                border-radius: 7px;
+                border: none;
+                font-family: var(--font-ui);
+                font-size: 13px;
+                cursor: pointer;
+                transition:
+                    background 0.15s ease,
+                    opacity 0.15s ease;
+            }
+            .settings-btn-secondary {
+                background: var(--bg-card);
+                color: var(--text-secondary);
+                border: 1px solid var(--border);
+            }
+            .settings-btn-secondary:hover {
+                background: var(--bg-card-hover);
+                color: var(--text-primary);
+            }
+            .settings-btn-primary {
+                background: var(--accent);
+                color: #fff;
+            }
+            .settings-btn-primary:hover {
+                background: var(--accent-hover);
+            }
+            .settings-btn:disabled {
+                opacity: 0.45;
+                cursor: not-allowed;
+            }
+            .settings-save-status {
+                font-family: var(--font-mono);
+                font-size: 11px;
+                color: var(--text-muted);
+                margin-right: auto;
+                transition: color 0.2s ease;
+            }
+            .settings-save-status.saved {
+                color: var(--success);
+            }
+            .settings-save-status.error {
+                color: var(--danger);
+            }
         </style>
     </head>
     <body>
@@ -1099,12 +1396,10 @@
                 <div class="window-controls hidden" aria-hidden="true">
                     <span></span><span></span><span></span>
                 </div>
-
                 <div class="headerbar-title">
                     <span class="name">Author v2</span>
                     <span class="endpoint" id="endpoint-label">chat #0</span>
                 </div>
-
                 <div class="status-pill" id="status-pill" title="">
                     <span
                         class="status-dot"
@@ -1115,7 +1410,6 @@
                         >connecting…</span
                     >
                 </div>
-
                 <button
                     class="icon-button"
                     id="edit-mode-button"
@@ -1137,7 +1431,6 @@
                         />
                     </svg>
                 </button>
-
                 <button
                     class="icon-button"
                     id="new-chat-button"
@@ -1155,7 +1448,6 @@
                         <path d="M12 5v14M5 12h14" />
                     </svg>
                 </button>
-
                 <button
                     class="icon-button settings"
                     id="settings-button"
@@ -1201,11 +1493,11 @@
                         >
                             <path d="M3 6h18" />
                             <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
-                            <path d="M5 6v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6" />
+                            <path
+                                d="M5 6v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6"
+                            />
                             <path d="M10 11v6" />
                             <path d="M14 11v6" />
-                        </svg>
-                            <path d="M12 5v14M5 12h14" />
                         </svg>
                     </button>
                 </nav>
@@ -1237,7 +1529,7 @@
                     <textarea
                         id="message-input"
                         class="composer-input"
-                        placeholder="Message the assistant... (Shift+Enter for a new line)"
+                        placeholder="Message the assistant… (Shift+Enter for a new line)"
                         autocomplete="off"
                         rows="1"
                     ></textarea>
@@ -1295,14 +1587,39 @@
             </footer>
         </div>
 
-        <!-- Settings popup -->
-        <div class="settings-backdrop" id="settings-backdrop">
-            <div class="settings-window" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <!-- ================================================================
+             SETTINGS PANEL
+             ================================================================ -->
+        <div
+            class="settings-backdrop"
+            id="settings-backdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settings-panel-title"
+        >
+            <div class="settings-panel" id="settings-panel">
                 <div class="settings-header">
-                    <span class="settings-title" id="settings-title">Settings</span>
+                    <div class="settings-header-left">
+                        <div class="settings-header-icon">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <circle cx="12" cy="12" r="3" />
+                                <path
+                                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33 1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82 1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+                                />
+                            </svg>
+                        </div>
+                        <h2 id="settings-panel-title">Settings</h2>
+                    </div>
                     <button
-                        class="settings-close-button"
-                        id="settings-close-button"
+                        class="settings-close"
+                        id="settings-close-btn"
                         type="button"
                         aria-label="Close settings"
                     >
@@ -1310,7 +1627,7 @@
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
-                            stroke-width="2"
+                            stroke-width="2.5"
                             stroke-linecap="round"
                         >
                             <path d="M18 6 6 18" />
@@ -1318,57 +1635,33 @@
                         </svg>
                     </button>
                 </div>
-                <div class="settings-body">
-                    <section class="settings-section">
-                        <h3>Appearance</h3>
-                        <div class="settings-field">
-                            <label for="settings-theme">Theme</label>
-                            <select id="settings-theme">
-                                <option value="dark">Dark</option>
-                                <option value="light">Light</option>
-                            </select>
-                        </div>
-                        <div class="settings-field">
-                            <label for="settings-font-size">Font size</label>
-                            <select id="settings-font-size">
-                                <option value="small">Small</option>
-                                <option value="medium">Medium</option>
-                                <option value="large">Large</option>
-                            </select>
-                        </div>
-                        <div class="settings-field">
-                            <label for="settings-compact">Compact mode</label>
-                            <input type="checkbox" id="settings-compact" />
-                        </div>
-                    </section>
-                    <section class="settings-section">
-                        <h3>Behavior</h3>
-                        <div class="settings-field">
-                            <label for="settings-auto-scroll">Auto-scroll to bottom</label>
-                            <input type="checkbox" id="settings-auto-scroll" checked />
-                        </div>
-                        <div class="settings-field">
-                            <label for="settings-sound">Sound effects</label>
-                            <input type="checkbox" id="settings-sound" />
-                        </div>
-                    </section>
-                    <section class="settings-section">
-                        <h3>Data</h3>
-                        <div class="settings-field">
-                            <label for="settings-storage">Local storage</label>
-                            <select id="settings-storage">
-                                <option value="enabled">Enabled</option>
-                                <option value="disabled">Disabled</option>
-                            </select>
-                        </div>
-                        <div class="settings-field settings-hint">
-                            <span class="settings-hint">Clearing local data cannot be undone.</span>
-                        </div>
-                    </section>
+
+                <div class="settings-body" id="settings-body">
+                    <div class="settings-state" id="settings-loading">
+                        <div class="settings-spinner"></div>
+                        Loading settings…
+                    </div>
                 </div>
+
                 <div class="settings-footer">
-                    <button class="settings-button-secondary" type="button">Reset</button>
-                    <button class="settings-button-primary" type="button">Save</button>
+                    <span
+                        class="settings-save-status"
+                        id="settings-save-status"
+                    ></span>
+                    <button
+                        class="settings-btn settings-btn-secondary"
+                        id="settings-discard-btn"
+                        type="button"
+                    >
+                        Discard
+                    </button>
+                    <button
+                        class="settings-btn settings-btn-primary"
+                        id="settings-save-btn"
+                        type="button"
+                    >
+                        Save changes
+                    </button>
                 </div>
             </div>
         </div>
@@ -1394,36 +1687,22 @@
                     stop: "stop",
                     deleteChat: "deleteChat",
                     deleteAllChats: "deleteAllChats",
-                    regenerateTitle: "regenerateTitle"
+                    regenerateTitle: "regenerateTitle",
+                    getSettings: "getSettings",
+                    saveSettings: "saveSettings",
                 },
-                // How often to poll the server for its current status.
                 statusPollIntervalMs: 3000,
-                // Markers the backend uses to delimit a transcript into turns.
-                // A marker attaches to the text segment that PRECEDES it.
                 markers: {
                     assistant: "{{[INPUT]}}",
                     user: "{{[OUTPUT]}}",
                 },
-                // Keys from the loadChat response that are metadata, not the transcript,
-                // and so belong in the chat-info panel rather than the message list.
                 infoFieldsExcluded: ["text", "title"],
-                // Per-letter title-change animation timing.
                 titleLetterStaggerMs: 16,
                 titleLetterOutMs: 200,
                 titleLetterInMs: 240,
-                // Max height (px) the composer textarea is allowed to auto-grow to
-                // before it starts scrolling instead (kept in sync with the
-                // max-height set on .composer-input in CSS).
                 composerMaxHeightPx: 140,
-                // Per-letter stagger for the streamed-token fade-up-in animation.
-                // Kept much tighter than titleLetterStaggerMs so a fast stream still
-                // reads as quick, smooth handwriting rather than a slow reveal.
                 streamLetterStaggerMs: 16,
                 streamChunkTimeMs: 300,
-                // Must match the duration in the `.stream-letter` / `letter-fade-up-in`
-                // CSS rule. Used to time the queue-draining timer (see
-                // processStreamQueue) instead of relying on the DOM "animationend"
-                // event, which won't fire if the element is removed mid-animation.
                 streamLetterAnimationMs: 140,
             };
 
@@ -1434,17 +1713,13 @@
              */
             const state = {
                 chatId: null,
-                // Chat ids that finished responding while the user was looking at a
-                // different chat. Cleared the moment that chat is opened.
                 unreadChatIds: new Set(),
-                // Raw transcript text of the chat currently open, kept in sync so edit
-                // mode always starts from what's actually on screen.
                 rawTranscript: "",
                 editMode: false,
-                // Last chat-info payload rendered in the right sidebar (as returned by
-                // loadChat), kept around mostly for reference — the actual source of
-                // truth for saving is whatever's currently in the info field inputs.
                 chatInfoData: {},
+                // Settings state: deep clone of last loaded settings, mutated by UI
+                settingsData: null,
+                settingsDirty: false,
             };
 
             /**
@@ -1472,19 +1747,356 @@
                 deleteChatsButton: document.getElementById(
                     "delete-all-chats-button",
                 ),
+                settingsButton: document.getElementById("settings-button"),
+                settingsBackdrop: document.getElementById("settings-backdrop"),
+                settingsBody: document.getElementById("settings-body"),
+                settingsLoading: document.getElementById("settings-loading"),
+                settingsSaveBtn: document.getElementById("settings-save-btn"),
+                settingsDiscardBtn: document.getElementById(
+                    "settings-discard-btn",
+                ),
+                settingsCloseBtn: document.getElementById("settings-close-btn"),
+                settingsSaveStatus: document.getElementById(
+                    "settings-save-status",
+                ),
             };
 
             dom.apiUrlLabel.textContent = CONFIG.apiBaseUrl;
 
+            /* ================================================================
+               SETTINGS PANEL LOGIC
+               ================================================================ */
+
             /**
-             * ---------------------------------------------------------------------
-             * Rendering helpers — message list
-             * ---------------------------------------------------------------------
-             * Final (non-streaming) message content is rendered as markdown, with
-             * any <think>...</think> segments pulled out into collapsible dropdowns.
-             * marked() output is always run through DOMPurify before being inserted,
-             * so no markup from the backend can execute in the page.
+             * Convert a raw key like "use_tools" or "projectId" into a human label.
              */
+            function settingLabel(key) {
+                return key
+                    .replace(/([a-z])([A-Z])/g, "$1 $2")
+                    .replace(/[_\-]+/g, " ")
+                    .replace(/\b\w/g, (c) => c.toUpperCase())
+                    .trim();
+            }
+
+            /**
+             * Infer the type of a plain setting value.
+             * Returns one of: "boolean" | "integer" | "float" | "string" | "group"
+             */
+            function inferType(value) {
+                if (value === null || value === undefined) return "string";
+                if (typeof value === "boolean") return "boolean";
+                if (typeof value === "number")
+                    return Number.isInteger(value) ? "integer" : "float";
+                if (typeof value === "string") return "string";
+                if (typeof value === "object" && !Array.isArray(value))
+                    return "group";
+                return "string"; // arrays and anything else fall back to a text field
+            }
+
+            /**
+             * Build the control element for a single leaf setting and wire up its
+             * onChange so state.settingsData is kept in sync.
+             *
+             * @param {string[]} path  - key path from root, e.g. ["flags", "use_tools"]
+             * @param {*}        value - the raw setting value
+             */
+            function buildControl(path, value) {
+                const type = inferType(value);
+
+                const setVal = (v) => {
+                    // Walk state.settingsData to the parent, then overwrite the key.
+                    let node = state.settingsData;
+                    for (let i = 0; i < path.length - 1; i++)
+                        node = node[path[i]];
+                    node[path[path.length - 1]] = v;
+                    state.settingsDirty = true;
+                    updateSaveStatus("");
+                };
+
+                if (type === "boolean") {
+                    const label = document.createElement("label");
+                    label.className = "toggle-switch";
+                    label.title = value ? "Enabled" : "Disabled";
+
+                    const input = document.createElement("input");
+                    input.type = "checkbox";
+                    input.checked = Boolean(value);
+                    input.addEventListener("change", () => {
+                        setVal(input.checked);
+                        label.title = input.checked ? "Enabled" : "Disabled";
+                    });
+
+                    const track = document.createElement("span");
+                    track.className = "toggle-track";
+                    const thumb = document.createElement("span");
+                    thumb.className = "toggle-thumb";
+
+                    label.appendChild(input);
+                    label.appendChild(track);
+                    label.appendChild(thumb);
+                    return label;
+                }
+
+                if (type === "integer" || type === "float") {
+                    const input = document.createElement("input");
+                    input.type = "number";
+                    input.className = "setting-number-input";
+                    input.value = value;
+                    input.step = type === "float" ? "any" : "1";
+                    input.addEventListener("change", () => {
+                        const v =
+                            type === "float"
+                                ? parseFloat(input.value)
+                                : parseInt(input.value, 10);
+                        setVal(isNaN(v) ? value : v);
+                    });
+                    return input;
+                }
+
+                if (type === "string") {
+                    const input = document.createElement("input");
+                    input.type = "text";
+                    input.className = "setting-text-input";
+                    input.value = String(value ?? "");
+                    input.placeholder = "—";
+                    input.addEventListener("input", () => setVal(input.value));
+                    return input;
+                }
+
+                // Fallback for arrays / unknown types
+                const input = document.createElement("input");
+                input.type = "text";
+                input.className = "setting-text-input";
+                input.value = JSON.stringify(value);
+                input.placeholder = "—";
+                input.addEventListener("input", () => {
+                    try {
+                        setVal(JSON.parse(input.value));
+                    } catch {
+                        setVal(input.value);
+                    }
+                });
+                return input;
+            }
+
+            /**
+             * Build a single setting row (label + inferred type hint + control).
+             */
+            function buildSettingRow(key, value, path) {
+                const row = document.createElement("div");
+                row.className = "setting-row";
+
+                const info = document.createElement("div");
+                info.className = "setting-row-info";
+
+                const keyEl = document.createElement("div");
+                keyEl.className = "setting-row-key";
+                keyEl.textContent = settingLabel(key);
+
+                const typeEl = document.createElement("div");
+                typeEl.className = "setting-row-type";
+                typeEl.textContent = inferType(value);
+
+                info.appendChild(keyEl);
+                info.appendChild(typeEl);
+
+                const controlWrapper = document.createElement("div");
+                controlWrapper.className = "setting-row-control";
+                controlWrapper.appendChild(buildControl(path, value));
+
+                row.appendChild(info);
+                row.appendChild(controlWrapper);
+                return row;
+            }
+
+            /**
+             * Recursively render a settings object into the given container.
+             * Plain objects become collapsible groups; all other values become rows.
+             */
+            function renderSettingsObject(obj, container, pathPrefix) {
+                for (const [key, value] of Object.entries(obj)) {
+                    const path = [...pathPrefix, key];
+
+                    if (inferType(value) === "group") {
+                        // Nested object → collapsible group
+                        const group = document.createElement("div");
+                        group.className = "settings-group";
+                        group.dataset.open = "true";
+
+                        const header = document.createElement("div");
+                        header.className = "settings-group-header";
+                        header.setAttribute("role", "button");
+                        header.setAttribute("aria-expanded", "true");
+
+                        const chevron = document.createElementNS(
+                            "http://www.w3.org/2000/svg",
+                            "svg",
+                        );
+                        chevron.setAttribute("viewBox", "0 0 24 24");
+                        chevron.setAttribute("fill", "none");
+                        chevron.setAttribute("stroke", "currentColor");
+                        chevron.setAttribute("stroke-width", "2");
+                        chevron.setAttribute("stroke-linecap", "round");
+                        chevron.setAttribute("class", "settings-group-chevron");
+                        chevron.innerHTML = `<path d="M9 18l6-6-6-6"/>`;
+
+                        const labelEl = document.createElement("span");
+                        labelEl.className = "settings-group-label";
+                        labelEl.textContent = settingLabel(key);
+
+                        const count = Object.keys(value).length;
+                        const countEl = document.createElement("span");
+                        countEl.className = "settings-group-count";
+                        countEl.textContent = count;
+
+                        header.appendChild(chevron);
+                        header.appendChild(labelEl);
+                        header.appendChild(countEl);
+
+                        const body = document.createElement("div");
+                        body.className = "settings-group-body";
+
+                        header.addEventListener("click", () => {
+                            const isOpen = group.dataset.open === "true";
+                            group.dataset.open = isOpen ? "false" : "true";
+                            header.setAttribute(
+                                "aria-expanded",
+                                String(!isOpen),
+                            );
+                        });
+
+                        group.appendChild(header);
+                        group.appendChild(body);
+                        container.appendChild(group);
+
+                        // Recurse into the nested object
+                        renderSettingsObject(value, body, path);
+                    } else {
+                        // Leaf setting — pass the raw value directly
+                        container.appendChild(
+                            buildSettingRow(key, value, path),
+                        );
+                    }
+                }
+            }
+
+            /**
+             * Fetch settings from the backend, deep-clone into state, then render.
+             */
+            async function loadSettings() {
+                dom.settingsBody.innerHTML = "";
+                const loading = document.createElement("div");
+                loading.className = "settings-state";
+                loading.innerHTML = `<div class="settings-spinner"></div> Loading settings…`;
+                dom.settingsBody.appendChild(loading);
+
+                dom.settingsSaveBtn.disabled = true;
+                dom.settingsDiscardBtn.disabled = true;
+                updateSaveStatus("");
+
+                try {
+                    const resp = await fetch(
+                        CONFIG.apiBaseUrl + CONFIG.endpoints.getSettings,
+                    );
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                    const data = await resp.json();
+
+                    state.settingsData = JSON.parse(JSON.stringify(data)); // deep clone
+                    state.settingsDirty = false;
+
+                    dom.settingsBody.innerHTML = "";
+                    renderSettingsObject(
+                        state.settingsData,
+                        dom.settingsBody,
+                        [],
+                    );
+
+                    dom.settingsSaveBtn.disabled = false;
+                    dom.settingsDiscardBtn.disabled = false;
+                } catch (err) {
+                    dom.settingsBody.innerHTML = "";
+                    const errEl = document.createElement("div");
+                    errEl.className = "settings-state error";
+                    errEl.textContent = `Could not load settings: ${err.message}`;
+                    dom.settingsBody.appendChild(errEl);
+                }
+            }
+
+            /**
+             * POST the current state.settingsData (a plain dict mirroring what
+             * the backend sent) back to saveSettings.
+             */
+            async function saveSettings() {
+                dom.settingsSaveBtn.disabled = true;
+                updateSaveStatus("");
+
+                try {
+                    const resp = await fetch(
+                        CONFIG.apiBaseUrl + CONFIG.endpoints.saveSettings,
+                        {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(state.settingsData),
+                        },
+                    );
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+                    state.settingsDirty = false;
+                    updateSaveStatus("saved");
+                    setTimeout(() => {
+                        if (!state.settingsDirty) updateSaveStatus("");
+                    }, 2500);
+
+                    closeSettings();
+                } catch (err) {
+                    updateSaveStatus("error", `Save failed: ${err.message}`);
+                } finally {
+                    dom.settingsSaveBtn.disabled = false;
+                }
+            }
+
+            function updateSaveStatus(kind, msg) {
+                dom.settingsSaveStatus.className =
+                    "settings-save-status" + (kind ? ` ${kind}` : "");
+                dom.settingsSaveStatus.textContent =
+                    msg || (kind === "saved" ? "Changes saved" : "");
+            }
+
+            function openSettings() {
+                dom.settingsBackdrop.classList.add("open");
+                loadSettings();
+                // Trap focus to the panel
+                setTimeout(() => dom.settingsCloseBtn.focus(), 50);
+            }
+
+            function closeSettings() {
+                dom.settingsBackdrop.classList.remove("open");
+            }
+
+            // Wire up settings open/close
+            dom.settingsButton.addEventListener("click", openSettings);
+            dom.settingsCloseBtn.addEventListener("click", closeSettings);
+            dom.settingsDiscardBtn.addEventListener("click", closeSettings);
+            dom.settingsSaveBtn.addEventListener("click", saveSettings);
+
+            // Click outside panel to close
+            dom.settingsBackdrop.addEventListener("click", (e) => {
+                if (e.target === dom.settingsBackdrop) closeSettings();
+            });
+
+            // Escape key closes
+            document.addEventListener("keydown", (e) => {
+                if (
+                    e.key === "Escape" &&
+                    dom.settingsBackdrop.classList.contains("open")
+                ) {
+                    closeSettings();
+                }
+            });
+
+            /* ================================================================
+               REST OF THE APP (unchanged from original)
+               ================================================================ */
 
             const ICONS = {
                 assistant: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2M20 14h2M9 12v2M15 12v2"/></svg>`,
@@ -1494,63 +2106,47 @@
                 regenerate: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L23 8"/><path d="M3 3v6h6"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L1 16"/><path d="M21 21v-6h-6"/></svg>`,
             };
 
-            // Matches a <think>...</think> block (case-insensitive, spans newlines).
             const THINK_BLOCK_PATTERN = /<think>([\s\S]*?)<\/think>/gi;
 
-            /**
-             * Split raw message text into an ordered list of segments:
-             *   { type: "think", content } for each <think>...</think> block
-             *   { type: "text", content }  for everything in between
-             * Whitespace-only "text" segments are dropped unless they're the only
-             * segment (so a message that's nothing but a think block doesn't render
-             * as an empty bubble with a dropdown floating in it, but a message with
-             * genuinely no think tags still renders normally).
-             */
-             function splitThinkSegments(text) {
-                 const segments = [];
-                 let lastIndex = 0;
-                 let match;
+            function splitThinkSegments(text) {
+                const segments = [];
+                let lastIndex = 0,
+                    match;
+                THINK_BLOCK_PATTERN.lastIndex = 0;
+                while ((match = THINK_BLOCK_PATTERN.exec(text)) !== null) {
+                    if (match.index > lastIndex)
+                        segments.push({
+                            type: "text",
+                            content: text.slice(lastIndex, match.index),
+                            startIndex: lastIndex,
+                            endIndex: match.index,
+                        });
+                    segments.push({
+                        type: "think",
+                        content: match[1],
+                        startIndex: match.index,
+                        endIndex: THINK_BLOCK_PATTERN.lastIndex,
+                    });
+                    lastIndex = THINK_BLOCK_PATTERN.lastIndex;
+                }
+                if (lastIndex < text.length)
+                    segments.push({
+                        type: "text",
+                        content: text.slice(lastIndex),
+                        startIndex: lastIndex,
+                        endIndex: text.length,
+                    });
+                return segments.filter(
+                    (seg, i) =>
+                        seg.type === "think" ||
+                        seg.content.trim() !== "" ||
+                        segments.length === 1,
+                );
+            }
 
-                 THINK_BLOCK_PATTERN.lastIndex = 0;
-                 while ((match = THINK_BLOCK_PATTERN.exec(text)) !== null) {
-                     if (match.index > lastIndex) {
-                         segments.push({
-                             type: "text",
-                             content: text.slice(lastIndex, match.index),
-                             startIndex: lastIndex,
-                             endIndex: match.index,
-                         });
-                     }
-                     segments.push({
-                         type: "think",
-                         content: match[1],
-                         startIndex: match.index,
-                         endIndex: THINK_BLOCK_PATTERN.lastIndex,
-                     });
-                     lastIndex = THINK_BLOCK_PATTERN.lastIndex;
-                 }
-                 if (lastIndex < text.length) {
-                     segments.push({
-                         type: "text",
-                         content: text.slice(lastIndex),
-                         startIndex: lastIndex,
-                         endIndex: text.length,
-                     });
-                 }
-
-                 return segments.filter(
-                     (seg, i) =>
-                         seg.type === "think" ||
-                         seg.content.trim() !== "" ||
-                         segments.length === 1,
-                 );
-             }
-
-            /** Render a markdown string to a sanitized DOM node. */
             function renderMarkdownToElement(markdownText) {
                 const wrapper = document.createElement("div");
                 wrapper.className = "markdown-content";
-
                 if (window.marked) {
                     const rawHtml = marked.parse(markdownText, {
                         breaks: true,
@@ -1560,173 +2156,124 @@
                         ? DOMPurify.sanitize(rawHtml)
                         : rawHtml;
                     if (window.hljs) {
-                        wrapper.querySelectorAll("pre code").forEach(codeEl => {
-                            window.hljs.highlightElement(codeEl);
-                        });
-
-                        wrapper.querySelectorAll("pre").forEach(pre => {
+                        wrapper
+                            .querySelectorAll("pre code")
+                            .forEach((codeEl) =>
+                                window.hljs.highlightElement(codeEl),
+                            );
+                        wrapper.querySelectorAll("pre").forEach((pre) => {
                             const code = pre.querySelector("code");
                             if (!code) return;
-
-                            // 1. Add Language Label
-                            const langClass = Array.from(code.classList).find(c => c.startsWith("language-"));
-                            const lang = langClass ? langClass.replace("language-", "") : "";
-
+                            const langClass = Array.from(code.classList).find(
+                                (c) => c.startsWith("language-"),
+                            );
+                            const lang = langClass
+                                ? langClass.replace("language-", "")
+                                : "";
                             if (lang) {
                                 const label = document.createElement("span");
                                 label.className = "code-lang-label";
                                 label.textContent = lang;
                                 pre.appendChild(label);
                             }
-
-                            // 2. Add Copy Button
                             const copyBtn = document.createElement("button");
                             copyBtn.className = "code-copy-btn";
                             copyBtn.textContent = "Copy";
                             copyBtn.onclick = () => {
                                 navigator.clipboard.writeText(code.innerText);
                                 copyBtn.textContent = "Copied!";
-                                setTimeout(() => copyBtn.textContent = "Copy", 2000);
+                                setTimeout(
+                                    () => (copyBtn.textContent = "Copy"),
+                                    2000,
+                                );
                             };
                             pre.appendChild(copyBtn);
                         });
                     }
                 } else {
-                    // Fallback if the markdown library failed to load — still safe,
-                    // just unformatted.
                     wrapper.textContent = markdownText;
                 }
                 return wrapper;
             }
 
-            /**
-             * Populate a bubble element with fully-rendered content: markdown text
-             * interleaved with collapsible <details> dropdowns for any <think>
-             * blocks found in the raw text.
-             */
-             function renderBubbleContent(bubbleEl, text) {
-                 bubbleEl.innerHTML = "";
-                 if (!text) return;
-
-                 const segments = splitThinkSegments(text);
-                 for (let i = 0; i < segments.length; i++) {
-                     const segment = segments[i];
-                     if (segment.type === "think") {
-                         const details = document.createElement("details");
-                         details.className = "think-block";
-
-                         const summary = document.createElement("summary");
-
-                         // Label on the left
-                         const label = document.createElement("span");
-                         label.textContent = "Thinking";
-
-                         // Button on the right
-                         const removeBtn = document.createElement("button");
-                         removeBtn.className = "thinking-remove-button";
-                         removeBtn.innerHTML = ICONS.trash;
-                         removeBtn.title = "Remove thinking";
-                         removeBtn.addEventListener("click", () => {
-                             deleteSegments(text, segments, [i]);
-                             renderBubbleContent(bubbleEl, newText);
-                         });
-
-                         summary.appendChild(label);
-                         //summary.appendChild(removeBtn);
-
-                         const content = document.createElement("div");
-                         content.className = "think-content";
-                         content.appendChild(
-                             renderMarkdownToElement(segment.content.trim()),
-                         );
-
-                         details.appendChild(summary);
-                         details.appendChild(content);
-                         bubbleEl.appendChild(details);
-                     } else {
-                         bubbleEl.appendChild(
-                             renderMarkdownToElement(segment.content),
-                         );
-                     }
-                 }
-             }
-
+            function renderBubbleContent(bubbleEl, text) {
+                bubbleEl.innerHTML = "";
+                if (!text) return;
+                const segments = splitThinkSegments(text);
+                for (let i = 0; i < segments.length; i++) {
+                    const segment = segments[i];
+                    if (segment.type === "think") {
+                        const details = document.createElement("details");
+                        details.className = "think-block";
+                        const summary = document.createElement("summary");
+                        const label = document.createElement("span");
+                        label.textContent = "Thinking";
+                        summary.appendChild(label);
+                        const content = document.createElement("div");
+                        content.className = "think-content";
+                        content.appendChild(
+                            renderMarkdownToElement(segment.content.trim()),
+                        );
+                        details.appendChild(summary);
+                        details.appendChild(content);
+                        bubbleEl.appendChild(details);
+                    } else {
+                        bubbleEl.appendChild(
+                            renderMarkdownToElement(segment.content),
+                        );
+                    }
+                }
+            }
 
             function deleteSegments(text, segments, indexesToDelete) {
-                // Gather ranges (sorted by position)
                 const ranges = indexesToDelete
-                    .map(i => segments[i])
+                    .map((i) => segments[i])
                     .sort((a, b) => a.startIndex - b.startIndex);
-
-                let result = "";
-                let cursor = 0;
-
+                let result = "",
+                    cursor = 0;
                 for (const r of ranges) {
-                    result += text.slice(cursor, r.startIndex); // keep what's between
-                    cursor = r.endIndex;                       // skip the deleted part
+                    result += text.slice(cursor, r.startIndex);
+                    cursor = r.endIndex;
                 }
-                result += text.slice(cursor);                  // keep the tail
-
+                result += text.slice(cursor);
                 return result;
             }
 
             function scrollToBottom() {
-              // Scroll only if the user is already near the bottom
-              if (dom.messageList.scrollTop + dom.messageList.clientHeight >= dom.messageList.scrollHeight - 20) {
-                  dom.messageList.scrollTop = dom.messageList.scrollHeight;
-              }
+                if (
+                    dom.messageList.scrollTop + dom.messageList.clientHeight >=
+                    dom.messageList.scrollHeight - 20
+                )
+                    dom.messageList.scrollTop = dom.messageList.scrollHeight;
             }
 
-            /** Build a single message row (assistant / user / system) and append it. */
             function appendMessage(role, text) {
                 const row = document.createElement("div");
                 row.className = `message-row ${role}`;
-
                 if (role === "assistant") {
                     const avatar = document.createElement("div");
                     avatar.className = "avatar";
                     avatar.innerHTML = ICONS.assistant;
                     row.appendChild(avatar);
                 }
-
                 const bubble = document.createElement("div");
                 bubble.className = "bubble";
-
                 if (role === "system") {
-                    // Local/error messages: keep as plain text, no markdown parsing.
                     bubble.textContent = text;
                 } else {
                     renderBubbleContent(bubble, text);
                 }
-
                 row.appendChild(bubble);
-
                 dom.messageList.appendChild(row);
                 scrollToBottom();
                 return row;
             }
 
-            /**
-             * Append one streamed chunk to a live assistant bubble, fading/rising
-             * each character in individually (staggered by
-             * CONFIG.streamLetterStaggerMs) rather than animating the whole chunk
-             * as one block. Newlines are appended as plain text nodes — animating
-             * them has no visual effect and wrapping them in an inline-block span
-             * can upset line-wrapping.
-             *
-             * This intentionally renders raw text (not markdown) while streaming,
-             * since re-parsing markdown/think-tags on every partial chunk would
-             * both be wasteful and produce flickering, half-formed markup. Once the
-             * response completes, the chat is reloaded from the server and the
-             * bubble is replaced with the fully rendered version via appendMessage.
-             */
             let streamQueue = { bubbleEl: null, text: "" };
             let isAnimatingStream = false;
 
             function appendStreamedChunk(bubbleEl, text) {
                 if (!text) return;
-
-                //streamQueue.push({ bubbleEl, text });
                 streamQueue.bubbleEl = bubbleEl;
                 streamQueue.text += text;
                 processStreamQueue();
@@ -1734,64 +2281,37 @@
 
             function processStreamQueue() {
                 if (isAnimatingStream || streamQueue.text.length === 0) return;
-
                 isAnimatingStream = true;
-
-                //const { bubbleEl, text } = streamQueue.shift();
                 const { bubbleEl, text } = streamQueue;
                 streamQueue = { bubbleEl: null, text: "" };
                 const frag = document.createDocumentFragment();
-
-                let delayMs = 0;
-                let sawAnimatedChar = false;
-
+                let delayMs = 0,
+                    sawAnimatedChar = false;
                 for (const ch of text) {
                     if (ch === "\n") {
                         frag.appendChild(document.createTextNode("\n"));
                         continue;
                     }
-
                     const span = document.createElement("span");
                     span.className = "stream-letter";
                     span.style.animationDelay = `${delayMs}ms`;
                     span.textContent = ch;
-
                     frag.appendChild(span);
                     sawAnimatedChar = true;
-
-                    var delay = CONFIG.streamChunkTimeMs;
-                    delay /= text.length;
-                    delayMs += delay;
+                    delayMs += CONFIG.streamChunkTimeMs / text.length;
                 }
-
                 bubbleEl.appendChild(frag);
-
-                // Nothing animated in this chunk.
                 if (!sawAnimatedChar) {
                     isAnimatingStream = false;
                     processStreamQueue();
                     return;
                 }
-
-                // Resume the queue with a timer rather than the last span's
-                // "animationend" event. If the bubble gets removed from the DOM
-                // before its animation finishes — which happens routinely here,
-                // since a message reload can wipe the message list moments after
-                // streaming completes — an in-flight CSS animation is cancelled
-                // ("animationcancel") instead of completed, so "animationend"
-                // would never fire and isAnimatingStream would stay stuck "true"
-                // forever, silently blocking every subsequent stream. A timeout
-                // fires on schedule regardless of whether the node is still
-                // attached to the document.
-                const totalDelayMs =
-                    delayMs + CONFIG.streamLetterAnimationMs;
                 setTimeout(() => {
                     isAnimatingStream = false;
                     processStreamQueue();
-                }, totalDelayMs);
+                }, delayMs + CONFIG.streamLetterAnimationMs);
             }
 
-            /** Show an animated "thinking" bubble and return it so it can be removed later. */
             function appendThinkingIndicator() {
                 const row = appendMessage("assistant", "");
                 const bubble = row.querySelector(".bubble");
@@ -1801,42 +2321,28 @@
 
             function clearMessages() {
                 dom.messageList.innerHTML = "";
-                // Whatever bubble a pending stream was targeting no longer
-                // exists — drop any queued/in-flight streaming state so it
-                // can't leak into the next message or chat.
                 streamQueue = { bubbleEl: null, text: "" };
                 isAnimatingStream = false;
             }
 
-            /**
-             * ---------------------------------------------------------------------
-             * Transcript parsing
-             * ---------------------------------------------------------------------
-             * The backend returns one string containing the whole conversation,
-             * with each turn followed by a marker that names whose turn it was.
-             * Example: "hi there{{[OUTPUT]}}hello!{{[INPUT]}}how can I help?{{[INPUT]}}"
-             *
-             * We split on the markers while keeping them, then walk the pieces in
-             * pairs: [text, marker, text, marker, ...]. Each text segment takes the
-             * role of the marker that follows it; a trailing segment with no marker
-             * defaults to "assistant".
-             */
             function parseTranscript(rawText) {
                 rawText = rawText.trimStart();
                 const markerPattern = new RegExp(
                     `(${escapeRegExp(CONFIG.markers.assistant)}|${escapeRegExp(CONFIG.markers.user)})`,
                 );
                 const pieces = rawText.split(markerPattern);
-
                 const turns = [];
                 for (let i = 0; i < pieces.length; i += 2) {
-                    const text = pieces[i];
-                    const marker = pieces[i + 1];
+                    const text = pieces[i],
+                        marker = pieces[i + 1];
                     if (!text) continue;
-
-                    const role =
-                        marker === CONFIG.markers.user ? "user" : "assistant";
-                    turns.push({ role, text });
+                    turns.push({
+                        role:
+                            marker === CONFIG.markers.user
+                                ? "user"
+                                : "assistant",
+                        text,
+                    });
                 }
                 return turns;
             }
@@ -1848,45 +2354,28 @@
             function renderTranscript(rawText) {
                 clearMessages();
                 const turns = parseTranscript(rawText);
-                if (turns.length === 0) {
-                    return;
-                }
+                if (turns.length === 0) return;
                 turns.forEach(({ role, text }) => appendMessage(role, text));
             }
 
-            /**
-             * ---------------------------------------------------------------------
-             * Chat info panel (right sidebar)
-             * ---------------------------------------------------------------------
-             * Renders every field from a loadChat response (other than the transcript
-             * text itself) as an editable field: the key as a small caption above a
-             * <textarea> holding the value. The textarea is disabled outside of edit
-             * mode, so it reads exactly like the old read-only label, but becomes a
-             * real form control once edit mode is entered (see setChatInfoFieldsEditable).
-             */
             function formatInfoLabel(key) {
                 return key
-                    .replace(/([a-z])([A-Z])/g, "$1 $2") // camelCase -> camel Case
+                    .replace(/([a-z])([A-Z])/g, "$1 $2")
                     .replace(/[_-]+/g, " ")
                     .replace(/\s+/g, " ")
                     .trim()
                     .toUpperCase();
             }
-
             function formatInfoValue(value) {
                 if (value === null || value === undefined) return "—";
                 if (typeof value === "object")
                     return JSON.stringify(value, null, 2);
                 return String(value);
             }
-
-            /** Grow an info-field textarea to fit its content, like the composer input. */
             function autoGrowInfoField(el) {
                 el.style.height = "auto";
                 el.style.height = `${el.scrollHeight}px`;
             }
-
-            /** Enable/disable every info-field input already in the DOM without re-rendering. */
             function setChatInfoFieldsEditable(editable) {
                 dom.infoFieldList
                     .querySelectorAll(".info-field-input")
@@ -1898,11 +2387,9 @@
             function renderChatInfo(chatData) {
                 dom.infoFieldList.innerHTML = "";
                 state.chatInfoData = chatData;
-
                 const entries = Object.entries(chatData).filter(
                     ([key]) => !CONFIG.infoFieldsExcluded.includes(key),
                 );
-
                 if (entries.length === 0) {
                     const empty = document.createElement("div");
                     empty.className = "sidebar-empty";
@@ -1910,32 +2397,24 @@
                     dom.infoFieldList.appendChild(empty);
                     return;
                 }
-
                 for (const [key, value] of entries) {
                     const field = document.createElement("div");
                     field.className = "info-field";
-
                     const label = document.createElement("span");
                     label.className = "info-field-label";
                     label.textContent = formatInfoLabel(key);
-
                     const val = document.createElement("textarea");
                     val.className = "info-field-value info-field-input";
                     val.rows = 1;
                     val.spellcheck = false;
                     val.dataset.infoKey = key;
                     val.value = formatInfoValue(value);
-                    // Only editable while in edit mode — matches the disabled-by-
-                    // default state of every other control in the composer/sidebar.
                     val.disabled = !state.editMode;
                     val.addEventListener("input", () => autoGrowInfoField(val));
-
                     field.appendChild(label);
                     field.appendChild(val);
                     dom.infoFieldList.appendChild(field);
                 }
-
-                // Size the textareas to their content once they've been laid out.
                 requestAnimationFrame(() => {
                     dom.infoFieldList
                         .querySelectorAll(".info-field-input")
@@ -1943,13 +2422,6 @@
                 });
             }
 
-            /**
-             * ---------------------------------------------------------------------
-             * Chat list (left sidebar)
-             * ---------------------------------------------------------------------
-             */
-
-            /** Replace a label's content with one <span class="letter"> per character, no animation. */
             function setChatItemLabelText(labelEl, text) {
                 labelEl.innerHTML = "";
                 labelEl.dataset.currentTitle = text;
@@ -1963,31 +2435,21 @@
                 labelEl.appendChild(frag);
             }
 
-            /**
-             * Swap a chat-item's title with a per-letter fade-down-out / fade-down-in
-             * transition: existing letters fade out (staggered), then the new title's
-             * letters fade in (staggered) once the old ones have cleared.
-             */
             function animateChatItemTitle(labelEl, newTitle) {
                 const outSpans = Array.from(
                     labelEl.querySelectorAll(".letter"),
                 );
-
-                // Nothing to transition from yet (first render) — just set it.
                 if (outSpans.length === 0) {
                     setChatItemLabelText(labelEl, newTitle);
                     return;
                 }
-
                 outSpans.forEach((span, i) => {
                     span.style.animation = `letter-fade-out ${CONFIG.titleLetterOutMs}ms ease forwards`;
                     span.style.animationDelay = `${i * CONFIG.titleLetterStaggerMs}ms`;
                 });
-
                 const outTotalMs =
                     CONFIG.titleLetterOutMs +
                     outSpans.length * CONFIG.titleLetterStaggerMs;
-
                 setTimeout(() => {
                     setChatItemLabelText(labelEl, newTitle);
                     const inSpans = Array.from(
@@ -2006,31 +2468,23 @@
                 );
             }
 
-            /** Update one chat's title in place (no full list re-render) if it actually changed. */
             function updateChatTitle(chatId, newTitle) {
                 if (!newTitle) return;
                 const item = findChatItem(chatId);
                 if (!item) return;
-
                 const label = item.querySelector(".chat-item-label");
                 if (label.dataset.currentTitle === newTitle) return;
-
                 animateChatItemTitle(label, newTitle);
             }
 
-            /** Show/hide the unread badge for one chat without touching the rest of the list. */
             function setChatUnread(chatId, isUnread) {
                 const key = String(chatId);
-                if (isUnread) {
-                    state.unreadChatIds.add(key);
-                } else {
-                    state.unreadChatIds.delete(key);
-                }
+                if (isUnread) state.unreadChatIds.add(key);
+                else state.unreadChatIds.delete(key);
                 const item = findChatItem(chatId);
                 if (item) item.classList.toggle("unread", isUnread);
             }
 
-            /** Disable/enable chat switching — used while a raw-log edit is in progress. */
             function setSidebarNavigationEnabled(enabled) {
                 dom.newChatButton.disabled = !enabled;
                 dom.chatItemList
@@ -2058,24 +2512,20 @@
                     const item = document.createElement("button");
                     item.type = "button";
                     item.className = "chat-item";
-                    item.dataset.chatId = id; // <-- the ID lives here, invisible to the user
+                    item.dataset.chatId = id;
                     item.disabled = state.editMode;
                     const isActive = String(id) === String(state.chatId);
                     const isUnread =
                         !isActive && state.unreadChatIds.has(String(id));
                     item.classList.toggle("active", isActive);
                     item.classList.toggle("unread", isUnread);
-
                     const dot = document.createElement("span");
                     dot.className = "chat-item-dot";
-
                     const label = document.createElement("span");
                     label.className = "chat-item-label";
-                    setChatItemLabelText(label, title || `Chat #${id}`); // <-- what's actually shown
-
+                    setChatItemLabelText(label, title || `Chat #${id}`);
                     const unreadBadge = document.createElement("span");
                     unreadBadge.className = "chat-item-unread-badge";
-
                     const deleteButton = document.createElement("button");
                     deleteButton.type = "button";
                     deleteButton.className = "chat-item-delete-button";
@@ -2083,32 +2533,31 @@
                     deleteButton.setAttribute("aria-label", "Delete chat");
                     deleteButton.disabled = state.editMode;
                     deleteButton.innerHTML = ICONS.trash;
-                    // Stop propagation so clicking delete doesn't also open the chat
-                    // (the item itself is a <button> with its own click handler).
                     deleteButton.addEventListener("click", (event) => {
                         event.stopPropagation();
                         deleteChat(id);
                     });
-
-                    const regenerateTitleButton = document.createElement("button");
+                    const regenerateTitleButton =
+                        document.createElement("button");
                     regenerateTitleButton.type = "button";
                     regenerateTitleButton.className = "chat-item-delete-button";
                     regenerateTitleButton.title = "Regenerate Title";
-                    regenerateTitleButton.setAttribute("aria-label", "Regenerate Title");
+                    regenerateTitleButton.setAttribute(
+                        "aria-label",
+                        "Regenerate Title",
+                    );
                     regenerateTitleButton.disabled = state.editMode;
                     regenerateTitleButton.innerHTML = ICONS.regenerate;
-                    // Stop propagation so clicking regenerate doesn't also open the chat
                     regenerateTitleButton.addEventListener("click", (event) => {
                         event.stopPropagation();
                         regenerateTitle(id);
                     });
-
                     item.appendChild(dot);
                     item.appendChild(label);
                     item.appendChild(unreadBadge);
                     item.append(regenerateTitleButton);
                     item.appendChild(deleteButton);
-                    item.addEventListener("click", () => openChat(id)); // closure already has the real id
+                    item.addEventListener("click", () => openChat(id));
                     dom.chatItemList.appendChild(item);
                 });
             }
@@ -2124,25 +2573,12 @@
                     });
             }
 
-            /**
-             * ---------------------------------------------------------------------
-             * Edit mode (raw transcript editor)
-             * ---------------------------------------------------------------------
-             * Toggling in swaps the rendered bubble list for a plain textarea seeded
-             * with the raw transcript, and turns every chat-info field into an
-             * editable textarea. Toggling out sends whatever's in the transcript
-             * textarea AND every chat-info field to the updateChat endpoint, then
-             * reloads the chat so the rendered view reflects what the server
-             * actually saved.
-             */
             function enterEditMode() {
                 state.editMode = true;
-
                 dom.editTextarea.value = state.rawTranscript;
                 dom.messageList.classList.add("hidden");
                 dom.editTextarea.classList.remove("hidden");
                 dom.sendButton.classList.add("hidden");
-
                 dom.editModeButton.innerHTML = ICONS.save;
                 dom.editModeButton.title = "Save and exit edit mode";
                 dom.editModeButton.setAttribute(
@@ -2150,30 +2586,22 @@
                     "Save and exit edit mode",
                 );
                 dom.editModeButton.classList.add("editing");
-
                 setFormEnabled(false);
                 setSidebarNavigationEnabled(false);
                 setChatInfoFieldsEditable(true);
-
                 dom.editTextarea.focus();
             }
 
             async function exitEditModeAndSave() {
                 const chatId = state.chatId;
                 const editedText = dom.editTextarea.value;
-
-                // Gather every chat-info field's current value straight from its
-                // input — this is the live edited state, not state.chatInfoData
-                // (which only reflects what the server last sent us).
                 const infoFields = {};
                 dom.infoFieldList
                     .querySelectorAll("[data-info-key]")
                     .forEach((el) => {
                         infoFields[el.dataset.infoKey] = el.value;
                     });
-
                 infoFields.content = editedText;
-
                 dom.editModeButton.disabled = true;
                 try {
                     await callBackend(CONFIG.endpoints.updateChat, {
@@ -2188,13 +2616,10 @@
                 } finally {
                     dom.editModeButton.disabled = false;
                 }
-
                 state.editMode = false;
-
                 dom.editTextarea.classList.add("hidden");
                 dom.messageList.classList.remove("hidden");
                 dom.sendButton.classList.remove("hidden");
-
                 dom.editModeButton.innerHTML = ICONS.edit;
                 dom.editModeButton.title = "Edit raw chat log";
                 dom.editModeButton.setAttribute(
@@ -2202,16 +2627,10 @@
                     "Edit raw chat log",
                 );
                 dom.editModeButton.classList.remove("editing");
-
                 setFormEnabled(true);
                 setSidebarNavigationEnabled(true);
                 setChatInfoFieldsEditable(false);
-
-                // Re-fetch so the rendered transcript/info panel reflect what was saved,
-                // in case the backend normalized or rejected part of the edit.
-                if (chatId === state.chatId) {
-                    await loadChat();
-                }
+                if (chatId === state.chatId) await loadChat();
             }
 
             function toggleEditMode() {
@@ -2222,19 +2641,6 @@
                 }
             }
 
-            /**
-             * ---------------------------------------------------------------------
-             * Server-driven status indicator
-             * ---------------------------------------------------------------------
-             * The server is the source of truth for what the dot shows. It's polled
-             * on an interval and expected to respond with:
-             *   { "status": "ready" | "working" | "disabled" | <anything else>, "message": "..." }
-             * "status" picks the dot color; "message" is shown as free-form text
-             * describing what the server is currently doing.
-             *
-             * "offline" is the one state the frontend sets itself — only when the
-             * status endpoint can't be reached at all.
-             */
             function setStatus(status, message) {
                 dom.statusDot.dataset.state = status;
                 dom.statusLabel.textContent = message || status;
@@ -2251,104 +2657,76 @@
                             `Server responded with status ${response.status}`,
                         );
                     const data = await response.json();
-
                     const wasWorking =
                         dom.statusDot.dataset.state === "working";
                     setStatus(data.status, data.message);
-
-                    // Background post-processing (title, summary, etc.) just finished for
-                    // the chat we're viewing — refresh so the sidebar/info panel catch up.
                     if (
                         wasWorking &&
                         data.status === "ready" &&
                         data.chat_id !== undefined &&
                         String(data.chat_id) === String(state.chatId) &&
                         !state.editMode
-                    ) {
+                    )
                         loadChat();
-                    }
                 } catch (error) {
                     setStatus(
                         "offline",
                         `Could not reach ${CONFIG.apiBaseUrl}`,
                     );
                 }
-
-                // Independent of status transitions — background title
-                // generation can finish after the chat is already "ready",
-                // so check for title changes on every tick rather than only
-                // when working->ready is observed.
-                if (!state.editMode) {
-                    refreshChatTitles();
-                }
+                if (!state.editMode) refreshChatTitles();
             }
 
             function startServerSideEventListener() {
-                const eventSource = new EventSource(CONFIG.apiBaseUrl + "events");
-
+                const eventSource = new EventSource(
+                    CONFIG.apiBaseUrl + "events",
+                );
                 eventSource.addEventListener("chat_update", (e) => {
                     const { chat_id } = JSON.parse(e.data);
-                    if (String(chat_id) === String(state.chatId) && !state.editMode) {
+                    if (
+                        String(chat_id) === String(state.chatId) &&
+                        !state.editMode
+                    )
                         loadChat();
-                    }
                 });
-
-                eventSource.addEventListener("state_change", (e) => {
-                  pollServerStatus();
+                eventSource.addEventListener("state_change", () => {
+                    pollServerStatus();
                 });
-
-                eventSource.addEventListener("title_update", (e) => {
-                  refreshChatTitles();
+                eventSource.addEventListener("title_update", () => {
+                    refreshChatTitles();
                 });
-
                 eventSource.onerror = () => {
-                    console.warn("SSE disconnected; EventSource will auto-retry.");
+                    console.warn(
+                        "SSE disconnected; EventSource will auto-retry.",
+                    );
                 };
             }
 
-            /**
-             * ---------------------------------------------------------------------
-             * Backend communication
-             * ---------------------------------------------------------------------
-             */
             async function callBackend(endpoint, payload) {
                 const response = await fetch(CONFIG.apiBaseUrl + endpoint, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload),
                 });
-
-                if (!response.ok) {
+                if (!response.ok)
                     throw new Error(
                         `Server responded with status ${response.status}`,
                     );
-                }
-
                 return response.json();
             }
 
-            /**
-             * ---------------------------------------------------------------------
-             * Actions
-             * ---------------------------------------------------------------------
-             */
             async function loadChat() {
                 const thinkingRow = appendThinkingIndicator();
                 const requestChatId = state.chatId;
                 try {
                     if (requestChatId == null) {
-                      console.log("Tried to load chat with no ID set");
-                      thinkingRow.remove();
-                      return;
+                        console.log("Tried to load chat with no ID set");
+                        thinkingRow.remove();
+                        return;
                     }
-                    console.log("Loading chatID: ", requestChatId)
                     const data = await callBackend(CONFIG.endpoints.loadChat, {
                         chat_id: requestChatId,
                     });
-
-                    // The user may have switched chats (or entered edit mode) while this
-                    // was in flight — only paint the transcript/info panel if they're
-                    // still looking at the plain view of this same chat.
                     const stillViewingThisChat =
                         requestChatId === state.chatId && !state.editMode;
                     if (stillViewingThisChat) {
@@ -2359,17 +2737,14 @@
                     } else {
                         thinkingRow.remove();
                     }
-
                     if (data.title) updateChatTitle(requestChatId, data.title);
-
                 } catch (error) {
                     thinkingRow.remove();
-                    if (requestChatId === state.chatId) {
+                    if (requestChatId === state.chatId)
                         appendMessage(
                             "system",
                             `Could not reach the backend at ${CONFIG.apiBaseUrl}. Make sure the FastAPI server is running.\n(${error.message})`,
                         );
-                    }
                 }
                 dom.messageList.scrollTop = dom.messageList.scrollHeight;
                 dom.messageInput.focus();
@@ -2377,46 +2752,29 @@
 
             async function sendMessage(event) {
                 event.preventDefault();
-
-                // Get the user message. If it doesn't exist, continue the conversation
                 const message = dom.messageInput.value.trim();
                 var continueMode = !message;
-
-                if (state.chatId == null) {
-                  await startNewChat();
-                }
+                if (state.chatId == null) await startNewChat();
                 const requestChatId = state.chatId;
-                console.log("Sending a message to chat: ", requestChatId)
-
-                if (!continueMode) {
-                    appendMessage("user", message);
-                }
+                if (!continueMode) appendMessage("user", message);
                 dom.messageList.scrollTop = dom.messageList.scrollHeight;
-
-
                 dom.messageInput.value = "";
                 resizeComposerInput();
                 setFormEnabled(false);
-
                 let liveBubble = null;
-
                 if (requestChatId === state.chatId && !state.editMode) {
                     const row = appendMessage("assistant", "");
                     liveBubble = row.querySelector(".bubble");
                 } else {
                     setChatUnread(requestChatId, true);
                 }
-
                 let finalText = "";
-
                 try {
                     const response = await fetch(
                         CONFIG.apiBaseUrl + CONFIG.endpoints.chat,
                         {
                             method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                            },
+                            headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
                                 chat_id: requestChatId,
                                 message: message,
@@ -2424,40 +2782,22 @@
                             }),
                         },
                     );
-
-                    if (!response.ok || !response.body) {
+                    if (!response.ok || !response.body)
                         throw new Error(
                             `Server responded with status ${response.status}`,
                         );
-                    }
-
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
-
-                    // The server sends newline-delimited JSON (NDJSON).
-                    // A network chunk is not necessarily a complete JSON object,
-                    // so keep incomplete data in this buffer.
                     let buffer = "";
-
                     while (true) {
                         const { done, value } = await reader.read();
-
                         if (done) break;
-
-                        buffer += decoder.decode(value, {
-                            stream: true,
-                        });
-
+                        buffer += decoder.decode(value, { stream: true });
                         const lines = buffer.split("\n");
-
-                        // Keep the final incomplete line for the next chunk.
                         buffer = lines.pop();
-
                         for (const line of lines) {
                             if (!line.trim()) continue;
-
                             let data;
-
                             try {
                                 data = JSON.parse(line);
                             } catch (error) {
@@ -2468,7 +2808,6 @@
                                 );
                                 continue;
                             }
-
                             switch (data.type) {
                                 case "token":
                                     if (
@@ -2483,7 +2822,6 @@
                                         scrollToBottom();
                                     }
                                     break;
-
                                 case "status":
                                     console.log(
                                         "Chat status:",
@@ -2491,24 +2829,14 @@
                                         data.message,
                                     );
                                     break;
-
-                                case "tool_call":
-                                    console.log(data)
-                                    if (data.chat_id == state.chatOd && !state.editMode) {
-                                      appendMessage("assistant", data.token);
-                                    }
-
                                 case "complete":
-                                    // The backend has finished generating the response.
                                     finalText = data.text || "";
                                     break;
-
                                 case "error":
                                     throw new Error(
                                         data.message ||
                                             "The server returned an error.",
                                     );
-
                                 default:
                                     console.warn(
                                         "Unknown event type from server:",
@@ -2518,17 +2846,11 @@
                             }
                         }
                     }
-
-                    // Flush any remaining decoder data.
                     buffer += decoder.decode();
-
-                    // Usually the server terminates every JSON object with \n,
-                    // but handle a final unterminated object just in case.
                     if (buffer.trim()) {
                         var erroredOut = false;
                         try {
                             const data = JSON.parse(buffer);
-
                             switch (data.type) {
                                 case "token":
                                     if (
@@ -2543,11 +2865,9 @@
                                         scrollToBottom();
                                     }
                                     break;
-
                                 case "complete":
                                     finalText = data.text || "";
                                     break;
-
                                 case "error":
                                     appendMessage(
                                         "system",
@@ -2558,7 +2878,6 @@
                                         data.message ||
                                             "The server returned an error.",
                                     );
-
                                 default:
                                     console.warn(
                                         "Unknown final event type:",
@@ -2573,32 +2892,29 @@
                             );
                         }
                     }
-
-                    if (!continueMode) {
+                    if (!continueMode)
                         state.rawTranscript +=
                             "{{[INPUT]}}" +
                             message +
                             "{{[OUTPUT]}}" +
                             finalText;
-                    }
-
-                    if (requestChatId === state.chatId && !state.editMode && !erroredOut) {
-                        // Pick up any server-side normalization.
+                    if (
+                        requestChatId === state.chatId &&
+                        !state.editMode &&
+                        !erroredOut
+                    )
                         await loadChat();
-                    }
                 } catch (error) {
-                    if (requestChatId === state.chatId) {
+                    if (requestChatId === state.chatId)
                         appendMessage(
                             "system",
                             `Could not reach the backend at ${CONFIG.apiBaseUrl}. Make sure your FastAPI Server is Running.\n(${error.message})`,
                         );
-                    }
                 } finally {
                     setFormEnabled(true);
                 }
             }
 
-            /** Ask the server to stop the in-progress generation. */
             async function cancelGeneration() {
                 dom.cancelButton.disabled = true;
                 try {
@@ -2612,9 +2928,7 @@
                 }
             }
 
-            /** Switch the active chat, refresh the transcript/info panel, and re-sync the sidebar. */
             async function openChat(chatId) {
-                // Switching chats abandons any unsaved raw-log edit rather than saving it.
                 if (state.editMode) {
                     state.editMode = false;
                     dom.editTextarea.classList.add("hidden");
@@ -2629,11 +2943,10 @@
                     setSidebarNavigationEnabled(true);
                     setChatInfoFieldsEditable(false);
                 }
-
                 state.chatId = chatId;
                 dom.endpointLabel.textContent = `chat #${state.chatId}`;
                 clearMessages();
-                setChatUnread(chatId, false); // seeing it now — clear any pending unread badge
+                setChatUnread(chatId, false);
                 highlightActiveChatItem();
                 await loadChat();
             }
@@ -2645,18 +2958,12 @@
                 await refreshChatList();
             }
 
-            /**
-             * Delete a single chat via the deleteChat endpoint, then refresh the
-             * sidebar list. If the chat being deleted is the one currently open,
-             * clear the transcript/info panel so nothing stale is left on screen.
-             */
             async function deleteChat(chatId) {
                 const item = findChatItem(chatId);
                 const deleteButton = item
                     ? item.querySelector(".chat-item-delete-button")
                     : null;
                 if (deleteButton) deleteButton.disabled = true;
-
                 try {
                     await callBackend(CONFIG.endpoints.deleteChat, {
                         chat_id: chatId,
@@ -2669,69 +2976,45 @@
                     if (deleteButton) deleteButton.disabled = false;
                     return;
                 }
-
                 state.unreadChatIds.delete(String(chatId));
-
                 if (String(chatId) === String(state.chatId)) {
                     clearMessages();
                     dom.infoFieldList.innerHTML = "";
                     state.rawTranscript = "";
                 }
-
                 await refreshChatList();
                 state.chatId = null;
             }
 
             async function regenerateTitle(chatId) {
-              try {
-                  await callBackend(CONFIG.endpoints.regenerateTitle, {
-                      chat_id: chatId,
-                  });
-              } catch (error) {
-                  appendMessage(
-                      "system",
-                      `Could not regenerateTitle #${chatId}: ${error.message}`,
-                  );
-                  return;
-              }
+                try {
+                    await callBackend(CONFIG.endpoints.regenerateTitle, {
+                        chat_id: chatId,
+                    });
+                } catch (error) {
+                    appendMessage(
+                        "system",
+                        `Could not regenerateTitle #${chatId}: ${error.message}`,
+                    );
+                }
             }
 
-            /**
-             * Enable/disable the composer form. While disabled (generation in
-             * progress), the send and process buttons are swapped out for a single
-             * cancel button that lets the user stop the in-flight generation.
-             */
             function setFormEnabled(enabled) {
                 dom.messageInput.disabled = !enabled;
                 dom.sendButton.disabled = !enabled;
                 dom.processButton.disabled = !enabled;
-
                 dom.sendButton.classList.toggle("hidden", !enabled);
                 dom.processButton.classList.toggle("hidden", !enabled);
                 dom.cancelButton.classList.toggle("hidden", enabled);
                 dom.cancelButton.disabled = false;
-
                 if (enabled) dom.messageInput.focus();
             }
 
-            /**
-             * Grow the composer textarea to fit its content (up to
-             * CONFIG.composerMaxHeightPx), then let it scroll internally beyond that.
-             * Called on input and after the field is programmatically cleared.
-             */
             function resizeComposerInput() {
                 dom.messageInput.style.height = "auto";
-                const nextHeight = Math.min(
-                    dom.messageInput.scrollHeight,
-                    CONFIG.composerMaxHeightPx,
-                );
-                dom.messageInput.style.height = `${nextHeight}px`;
+                dom.messageInput.style.height = `${Math.min(dom.messageInput.scrollHeight, CONFIG.composerMaxHeightPx)}px`;
             }
 
-            /**
-             * Enter submits the message; Shift+Enter inserts a newline (the
-             * textarea's default behavior, so we just let it through).
-             */
             function handleComposerKeydown(event) {
                 if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();
@@ -2741,7 +3024,6 @@
                         sendMessage(new Event("submit", { cancelable: true }));
                     }
                 }
-                // Shift+Enter: no preventDefault, so the textarea inserts "\n" itself.
             }
 
             async function refreshChatList() {
@@ -2757,18 +3039,6 @@
                 }
             }
 
-            /**
-             * Keep sidebar titles in sync with the server without waiting for a
-             * full list rebuild. Background title generation can finish well
-             * after a chat's status is already back to "ready", so relying on
-             * the working->ready transition in pollServerStatus isn't enough —
-             * this polls listChats directly and patches titles in place via
-             * updateChatTitle so the fade-out/fade-in animation still plays.
-             *
-             * If the set of chat ids has actually changed (a chat was added or
-             * removed some other way), falls back to a full renderChatList
-             * instead of trying to patch a structurally different list.
-             */
             async function refreshChatTitles() {
                 try {
                     const data = await callBackend(
@@ -2776,7 +3046,6 @@
                         {},
                     );
                     const chats = data.chatIDs ?? [];
-
                     const existingIds = new Set(
                         Array.from(
                             dom.chatItemList.querySelectorAll(".chat-item"),
@@ -2785,27 +3054,23 @@
                     const incomingIds = new Set(
                         chats.map(({ id }) => String(id)),
                     );
-
                     const sameSet =
                         existingIds.size === incomingIds.size &&
                         [...existingIds].every((id) => incomingIds.has(id));
-
                     if (!sameSet) {
                         renderChatList(chats);
                         return;
                     }
-
-                    chats.forEach(({ id, title }) => {
-                        updateChatTitle(id, title || `Chat #${id}`);
-                    });
+                    chats.forEach(({ id, title }) =>
+                        updateChatTitle(id, title || `Chat #${id}`),
+                    );
                 } catch (error) {
-                    // Leave the list as-is; the next poll or manual action will retry.
+                    /* leave list as-is */
                 }
             }
 
             async function processChat() {
                 try {
-                    console.log(`Processing chat ${state.chatId}`);
                     const data = await callBackend(
                         CONFIG.endpoints.processChat,
                         { chat_id: state.chatId },
@@ -2825,17 +3090,13 @@
                 state.chatId = null;
             }
 
-            /**
-             * ---------------------------------------------------------------------
-             * Wire up events and boot the app
-             * ---------------------------------------------------------------------
-             */
+            /* --- Boot --- */
             dom.chatForm.addEventListener("submit", sendMessage);
             dom.newChatButton.addEventListener("click", startNewChat);
             dom.editModeButton.addEventListener("click", toggleEditMode);
             dom.processButton.addEventListener("click", processChat);
             dom.cancelButton.addEventListener("click", cancelGeneration);
-            dom.deleteChatsButton.addEventListener("click", deleteAllChats); // <- This should have confirmation eventually
+            dom.deleteChatsButton.addEventListener("click", deleteAllChats);
             dom.messageInput.addEventListener("keydown", handleComposerKeydown);
             dom.messageInput.addEventListener("input", resizeComposerInput);
 

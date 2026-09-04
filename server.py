@@ -4,6 +4,7 @@ import logging
 import sys
 import threading
 import time
+from typing import Any
 
 from fastapi import BackgroundTasks, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,6 +19,7 @@ import ai.orchestrator as orchestrator
 import config
 import databasehandler
 import signals
+import state.settings as settings
 from ai.kobold import KoboldError, koboldInstance
 from state.state import stateManager
 
@@ -44,6 +46,13 @@ class ChatRequest(BaseModel):
     chat_id: str
     message: str
     force_thinking: bool
+
+
+class SettingsRequest(BaseModel):
+    settings: dict[str, Any]
+
+
+SettingsRequest.model_rebuild()
 
 
 class UpdateChatRequest(BaseModel):
@@ -111,7 +120,7 @@ async def send_message(req: ChatRequest, background_tasks: BackgroundTasks):
                 chat_id=chat_id,
                 user_message=user_message,
                 force_thinking=force_thinking,
-                use_tools=True,
+                use_tools=False,
             ):
                 yield json.dumps(item) + "\n"
 
@@ -219,6 +228,16 @@ async def sse_event_stream():
             "Connection": "keep-alive",
         },
     )
+
+
+@app.get("/api/getSettings")
+async def get_settings():
+    return settings.settings
+
+
+@app.post("/api/saveSettings")
+async def save_setting(req: SettingsRequest):
+    print(req)
 
 
 @app.get("/")
