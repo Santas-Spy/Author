@@ -256,10 +256,11 @@ def sendUserMessage(
         messages = chatformatter.split_conversation(message)
         messages = chatformatter.strip_previous_thinking(messages)
         available_tools = tool_list.get_default_toollist()
+        tool_choice = "auto"
         while True:
             # Generate Text
             previous_token_type = None
-            for token in koboldInstance.generateWithTools(messages, stream=True, tools=available_tools):
+            for token in koboldInstance.generateWithTools(messages, stream=True, tools=available_tools, tool_choice=tool_choice):
                 if token["type"] == "content":
                     state.working("Writing in chat {title}", chat_id=chat_id)
                     text = token["token"]
@@ -293,6 +294,10 @@ def sendUserMessage(
                 result = tool_list.call_tool(tc)
                 tool_response = result["tool_response"]
                 available_tools = result["next_tools"]
+                if "force_tools" in result:
+                    tool_choice = "required"
+                else:
+                    tool_choice = "auto"
 
                 tool_call_message = {
                     "role": "assistant",

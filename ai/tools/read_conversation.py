@@ -32,7 +32,7 @@ def get_tool():
 
 
 def execute(conversation_id, task) -> str:
-    stateManager.working(message=f"Reading conversation {conversation_id}")
+    stateManager.working(message="Reading conversation {title}", chat_id=conversation_id)
     db = databasehandler.DatabaseHandler()
     conversation = db.load_conversation(conversation_id)
     if conversation is None:
@@ -43,14 +43,14 @@ def execute(conversation_id, task) -> str:
         if raw_text is None:
             return "Conversation was empty"
 
-        if raw_text.length < config.readSetting("system.tools.read_conversation.max_conversation_length", 1500):
+        if len(raw_text) < int(config.readSetting("system.tools.read_conversation.max_conversation_length", 1500)):
             return raw_text
 
         target_word_count = config.readSetting("system.tools.read_conversation.target_summary_size", 500)
         prompt = config.readSetting("prompts.summarize_key_information")
         prompt = prompt.replace("{task}", task)
         prompt = prompt.replace("{conversation}", raw_text)
-        prompt = prompt.replace("{word_count}", target_word_count)
+        prompt = prompt.replace("{word_count}", str(target_word_count))
         response = koboldInstance.generate(prompt)
         if response is None:
             print("Response was cancelled!")

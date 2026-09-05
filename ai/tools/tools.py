@@ -17,7 +17,7 @@ def get_default_toollist():
     return tools
 
 
-def call_tool(tool) -> dict[str, str | list]:
+def call_tool(tool) -> dict[str, Any]:
     tool_name = tool["function"]["name"]
     print(f"calling tool: {tool_name}")
     if tool_name == "search_web":
@@ -34,6 +34,6 @@ def call_tool(tool) -> dict[str, str | list]:
 
     if tool_name == "list_conversations":
         chat_list = list_conversation.execute()
-        return {"tool_response": json.dumps(chat_list), "next_tools": [read_conversation.get_tool()]}
+        return {"tool_response": json.dumps(chat_list), "next_tools": [read_conversation.get_tool()], "force_tools": True}
 
     return {"tool_response": "Tool did not return any result", "next_tools": get_default_toollist()}
